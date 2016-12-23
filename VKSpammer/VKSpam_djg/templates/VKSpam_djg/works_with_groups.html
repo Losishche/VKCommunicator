@@ -1,0 +1,21 @@
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
+
+{% include "VKSpam_djg/navigation.html" %}
+
+<div>
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:works_with_groups' %}" method="post" >
+        {% csrf_token %}
+     {{ get_ava_info_and_photo_settings_form.as_p }}
+        <input type="submit" value="собрать настройки аватарок"  class="button button-green"   />
+    </form>
+    </div>
+<div>
+
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:works_with_groups' %}" method="post" >
+        <p>работа с настройками аватарок в режиме "мультисендер"</p>
+        {% csrf_token %}
+     {{ multisender_get_ava_info_and_photo_setting_form.as_p }}
+        <input type="submit" value="собрать в мультисендере настройки аватарок"  class="button button-green"   />
+    </form>
+    </div>

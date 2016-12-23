@@ -1,0 +1,64 @@
+
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
+
+{% include "VKSpam_djg/navigation.html" %}
+
+<div>
+<form enctype="multipart/form-data" action="{% url 'VKSpam_djg:statistics' %}" method="post" >
+        {% csrf_token %}
+     {{ get_statistics_form.as_p }}
+        <input type="submit" value="получить статистику по аватаркам"  class="button button-green"   />
+    </form>
+</div>
+
+{% if  count_of_photo_comment_posted %}
+    <ul>
+        <p>  Пользователям группы {{ group_id }} отправлено
+             {{ count_of_photo_comment_posted  }} комментариев к аватаркам
+            </p>
+        </ul>
+{% endif %}
+
+{% if count_of_privat_message_sent %}
+    <ul>
+        <p>  Пользователям группы {{ group_id }} отправлено
+             {{ count_of_privat_message_sent  }} cooбщений в личку
+            </p>
+        </ul>
+{% endif %}
+
+
+
+{% if count_of_wall_post_sent %}
+    <ul>
+        <p>  Пользователям группы {{ group_id }} отправлено
+             {{ count_of_wall_post_sent  }} постов на стену
+            </p>
+        </ul>
+{% endif %}
+
+{% if count_of_group_subscribers %}
+    <ul>
+        <p>  Всего в базе данных содержится  {{ count_of_group_subscribers  }} пользователей группы
+            {{ group_id }}
+            </p>
+        </ul>
+{% endif %}
+
+{% if count_of_possible_ava_comment %}
+    <ul>
+        <p>  Разрешено комментировать аватарки у {{ count_of_possible_ava_comment }} пользователей группы
+            {{ group_id }}
+            </p>
+        </ul>
+{% endif %}
+
+
+{% if count_of_possible_privat_message %}
+    <ul>
+        <p>  Разрешено отслылать сообщения в личку у {{ count_of_possible_privat_message }} пользователей группы
+            {{ group_id }}
+            </p>
+        </ul>
+{% endif %}

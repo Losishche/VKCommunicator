@@ -1,0 +1,36 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>VKCommunicator/distr_to_avas</title>
+
+    </head>
+
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
+
+
+{% include "VKSpam_djg/navigation.html" %}   <!-- так включаем другой шаблон в этот шаблон-->
+
+    <div>
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:distr_to_walls' %}" method="post">
+        {% csrf_token %}
+     {{ do_wall_post_form.as_p }}
+        <input type="submit" value="начать постинг " />
+
+        {% if status_for_start_of_wall_post  %}
+            <ul>
+                <h2> {{status_for_start_of_wall_post}} </h2>
+                </ul>
+        {% endif %}
+
+        {% if status_for_finish_of_wall_post %}
+            <ul>
+                <h2> {{status_for_finish_of_wall_post}} </h2>
+                </ul>
+        {% endif %}
+    </form>
+
+        {% include "captcha_input_form.html" with  cif="url 'VKSpam_djg:distr_to_walls'" %}
+</div>
+

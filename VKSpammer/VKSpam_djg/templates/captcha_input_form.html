@@ -1,0 +1,14 @@
+ {% block distr %}
+ {% endblock %}
+<form enctype="multipart/form-data" action="{% url 'VKSpam_djg:captcha_input_form' %}" method="post">
+        {% csrf_token %}
+        {{ enter_captcha_form}}
+        <input type="submit" value="отправить капчу">
+    </form>
+
+{% if captcha_inf %}
+    <ul>
+        <h2> {{captcha_inf}} </h2>
+    </ul>
+
+    {% endif %}

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Рассылка в личку</title>
+</head>
+
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
+
+{% include "VKSpam_djg/navigation.html" %}
+
+<div>
+    <form enctype="multipart/form-data"  action="{% url 'VKSpam_djg:distr_to_privat' %}" method="post">
+        {% csrf_token %}
+        {{ do_privat_message_form.as_p }}
+            <input type="submit" value="начать отправку в личку">
+
+        {% if status_for_start_of_privat_distr  %}
+            <ul>
+                <h2> {{status_for_start_of_privat_distr}} </h2>
+                </ul>
+        {% endif %}
+
+        {% if status_for_finish_of_privat_distr %}
+            <ul>
+                <h2> {{status_for_finish_of_privat_distr}} </h2>
+                </ul>
+        {% endif %}
+    </form>
+
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:distr_to_privat' %}" method="post">
+        {% csrf_token %}
+        <p> Отправка в личку в режиме "mультисендер" </p>
+        {{ do_privat_multisender_sending_mess_form.as_p }}
+            <input type="submit" value="начать отправку">
+    </form>
+</div>

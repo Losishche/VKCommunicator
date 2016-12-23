@@ -1,0 +1,16 @@
+COPYING
+README
+setup.py
+vkontaktecli.py
+vkontaktegui.py
+bin/vkontakte-cli
+bin/vkontakte-gui
+icons/vkontakte-64x64.png
+icons/vkontakte.png
+links/vkontakte-tool.desktop
+vkontakte/__init__.py
+vkontakte/auth.py
+vkontakte/common.py
+vkontakte/friends.py
+vkontakte/graffiti.py
+vkontakte/groups.py

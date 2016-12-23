@@ -1,0 +1,4 @@
+include COPYING
+include links/vkontakte-tool.desktop
+include icons/vkontakte.png
+include icons/vkontakte-64x64.png

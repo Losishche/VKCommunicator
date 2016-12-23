@@ -1,0 +1,74 @@
+vkontakte-tool (0.7.1) lucid; urgency=low
+
+  * Change friends-fetching code to groups-fetching like for
+    more robustness.
+
+ -- Alexey Osipov <simba@lerlan.ru>  Mon, 01 Aug 2011 22:49:58 +0700
+
+vkontakte-tool (0.7) lucid; urgency=low
+
+  * Fixed graffiti image size display.
+  * Fix auth, friends/groups fetching, graffiti sending.
+  * Graffiti autoconfirm works again.
+  * Do not differentiate between accepted and unaccepted groups (temporary).
+
+ -- Alexey Osipov <simba@lerlan.ru>  Sun, 31 Jul 2011 14:24:16 +0700
+
+vkontakte-tool (0.6) lucid; urgency=low
+
+  * Fixed crush on invalid login.
+  * Show graffiti image size in GUI.
+  * Fixed changed regexp for login (LP:591250).
+  * Properties panel added.
+  * Uploading format is now selectable (LP:565254). Autoselection
+    is enabled by default.
+  * New nicks authentification is now supported (LP:577104).
+
+ -- Alexey Osipov <lion-simba@pridelands.ru>  Fri, 25 Jun 2010 23:35:04 +0700
+
+vkontakte-tool (0.5) karmic; urgency=low
+
+  * Uploading graffiti as PNG image instead of JPEG gives less
+    distortion on the image (LP:457582).
+  * PNGs with width of 586 pixels uploaded "as is" without recompress.
+  * Various logging to stderr.
+  * New login scheme using s-value (LP:474069).
+  * No more graffiti autoconfirmation, because of possible captcha. Show link
+    to confirmation page instead (LP:501867).
+
+ -- Alexey Osipov <lion-simba@pridelands.ru>  Fri, 08 Jan 2010 21:40:36 +0600
+
+vkontakte-tool (0.4) jaunty; urgency=low
+
+  * More accurate error messages shown if graffiti upload failed.
+  * More accurate checking of graffiti upload success (LP:416722).
+  * Can now load PNGs with alpha-channel, which is simply ignored.
+
+ -- Alexey Osipov <lion-simba@pridelands.ru>  Mon, 24 Aug 2009 18:05:40 +0700
+
+vkontakte-tool (0.3) jaunty; urgency=low
+
+  * Connection problems don't crush program, but cause an error message. 
+    (Closes: #413269)
+  * Failed login cause an explaining error message.
+  * Fixed crush on startup on systems having both wxWidgets 2.6 and 2.8
+    installed.
+  * Deprecation warning at startup removed.
+  * Success graffiti upload dialog shows a link to the friend's/group's
+    wall page instead of a link to yourself wall page. (Closes: #413260)
+  * Graffiti upload success check improved - error dialog shown on fail.
+  * Friends/groups lists in GUI part are sorted now.
+
+ -- Alexey Osipov <lion-simba@pridelands.ru>  Sat, 15 Aug 2009 23:26:01 +0700
+
+vkontakte-tool (0.2) jaunty; urgency=low
+
+  * Fixed empty friends list. (Closes: #413167)
+
+ -- Alexey Osipov <lion-simba@pridelands.ru>  Thu, 13 Aug 2009 23:27:02 +0700
+
+vkontakte-tool (0.1) hardy; urgency=low
+
+  * Initial release. (Closes: #XXXXXX)
+
+ -- Alexey Osipov <lion-simba@pridelands.ru>  Mon, 23 Feb 2009 15:48:51 +0600

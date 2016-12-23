@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+
+import vkontaktegui
+
+if __name__=='__main__':
+    vkontaktegui.main()

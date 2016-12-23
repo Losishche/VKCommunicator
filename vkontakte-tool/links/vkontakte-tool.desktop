@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Vkontakte Tool
+Name[ru]=Инструмент "В контакте"
+Comment=Alternative client for vkontakte.ru social network
+Comment[ru]=Альтернативный клиент для социальной сети vkontakte.ru
+Exec=vkontakte-gui
+Icon=vkontakte
+Terminal=false
+Type=Application
+Categories=Network;

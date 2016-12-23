@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+
+    <script src="http://code.jquery.com/jquery-2.0.2.min.js"></script>
+<script>
+    $(document).ready(function(){
+        //Скрыть PopUp при загрузке страницы
+        PopUpHide();
+    });
+    //Функция отображения PopUp
+    function PopUpShow(){
+        $("#popup1").show();
+    }
+    //Функция скрытия PopUp
+    function PopUpHide(){
+        $("#popup1").hide();
+    }
+</script>
+
+</head>
+<body>
+
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
+
+{% include "VKSpam_djg/navigation.html" %}
+
+
+{% for camp in campaign_list %}
+  <a> цикл по кампаниям с помощью ListView</a>
+ <div>{{  camp.id }}</div>
+
+<div class="b-container">
+    Sample Text
+    <a href="javascript:PopUpShow()">Show popup</a>
+</div>
+<div class="b-popup" id="popup1">
+    <div class="b-popup-content">
+        <script>        document.write(Date());</script>
+
+    <a href="javascript:PopUpHide()">Hide popup</a>
+    </div>
+</div>
+
+  {% empty %}
+        <p>Кампаний не обнаружено:( </p>
+
+{% endfor %}
+
+</body>
+</html>

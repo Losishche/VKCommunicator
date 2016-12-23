@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Боты для отправки</title>
+</head>
+<body>
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
+
+{% include "VKSpam_djg/navigation.html" %}
+
+<ul>
+    <div>
+        <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:get_set_of_tokens' %}" method="post">
+            {% csrf_token %}
+            {{ get_set_of_tokens_form }}
+            {{ get_set_of_tokens_form.finish_of_getting_tokens}}
+            <input type="hidden" name="ask_set_of_token_btn" value="True">
+            <input type="submit" value="Собрать токены">
+            </form>
+        </div>
+    <table>
+
+{% for bot in bots_senders %}
+        <tr>
+        <td> {{bot.surname}} </td>
+        <td> {{bot.vk_login}} </td>
+        <td> {{bot.vk_password}} </td>
+            <td> {{bot.is_blocked }}</td>
+            <td>
+                <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:bots_senders' %}" method="post" class="autorise">
+                {% csrf_token %}
+                {{autorisation_form}}
+                <input type="hidden" name="autorisation" value={{bot.id}}>
+                <input type="submit" value="авторизоваться">
+                </form>
+            </td>
+         </tr>
+    {% endfor %}
+    </table>
+    </ul>
+</body>
+</html>

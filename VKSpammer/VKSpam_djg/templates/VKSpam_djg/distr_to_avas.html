@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>VKCommunicator/distr_to_avas</title>
+
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js">
+
+        <script type="text/javascript" language="JavaScript"> function Show(elem) {
+                      document.write(some)
+                      }
+
+            </script>
+
+    </head>
+
+
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
+
+
+
+{% include "VKSpam_djg/navigation.html" %}   <!-- так включаем другой шаблон в этот шаблон-->
+
+    <div style="float:left;">
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:distr_to_avas' %}" method="post">
+        {% csrf_token %}
+     {{ do_comment_photo_form.as_p }}
+        <input type="submit" value="начать отправку" />
+
+        {% if status_for_start_of_posting_ava_comment %}
+            <ul>
+                <h2> {{status_for_start_of_posting_ava_comment}} </h2>
+                </ul>
+        {% endif %}
+
+        {% if status_for_finish_of_posting_ava_comment %}
+            <ul>
+                <h2> {{status_for_finish_of_posting_ava_comment}} </h2>
+                </ul>
+        {% endif %}
+    </form>
+
+        {% include "captcha_input_form.html" %}
+</div>
+
+
+<center>
+<div style="width:110px;
+        padding:12px;
+        width:400px;
+        height:400px;
+        background:#696969;
+        float:center;
+        margin-left:15px;
+        text-align:left;
+        overflow: auto; /* прокрутка по вертикали */
+   }"
+        id="content">
+
+            <script>
+document.write(Date());
+
+</script>
+    {% if  std_out_messages %}
+    <p> {{ std_out_messages }} </p>
+        {% endif %}
+
+
+
+    <p id="changing_element1">Hello World!</p>
+
+
+<!--
+
+    <script>
+
+
+        function show()
+        {
+            $.ajax({
+                url: "time.php",
+                cache: false,
+                success: function(html){
+                    $("#content").html(html);
+                }
+            });
+        }
+
+        $(document).ready(function(){
+            show();
+            setInterval('show()',1);
+        });
+    </script> -->
+
+
+
+<progress id="progressBar" value="25" max="100"></progress>
+    <span id="status"></span>
+    <h1 id="finalMessage"></h1>
+
+    <p>Пожалуйста, подождите, осуществляется рассылка</p>
+<button type="button" onclick="loadDoc()">Показать логи функции</button>
+    <button type="button" onclick="unLoadDoc()">Скрыть логи</button>
+    <p id="demo">Тут отобразятся логи
+    Тут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логи
+        Тут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логи
+        Тут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логиТут отобразятся логи
+        Тут отобразятся логи
+        Тут отобразятся логи
+        Тут отобразятся логиТут отобразятся логиТут отобразятся логи
+        Тут отобразятся логи
+        Тут отобразятся логи
+        Тут отобразятся логиТут отобразятся логи
+
+
+        Тут отобразятся логи
+        Тут отобразятся логи
+        Тут отобразятся логиТут отобразятся логиТут отобразятся логи
+        Тут отобразятся логи
+        Тут отобразятся логи
+
+        Тут отобразятся логи
+        Тут отобразятся логи
+
+
+
+
+
+    </p>
+
+    <!--
+    <div id="myProgress">
+  <div id="myBar">
+    <div id="label">10%</div>
+  </div>
+</div> -->
+
+    </div>
+
+
+
+</center>
+<!-- СНАЧАЛА ЭЛЕМЕНТЫ, потом, джаваскрипт код -->
+
+
+<script>
+function move() {
+  var elem = document.getElementById("myBar");
+  var width = 10;
+  var id = setInterval(frame, 10);
+var fs = require("fs");
+
+  function frame(fs) {
+    if (width >= 100) {
+      clearInterval(id);
+    } else {
+      width++;
+
+fs.readFile("process_log.txt", "utf8", function(error, text) {
+  if (error)
+    throw error;
+  console.log("А в файле том было:", text);
+});
+
+      elem.style.width = width + text + '%';
+      document.getElementById("label").innerHTML = width * 1  + '%';
+    }
+  }
+}
+</script>
+
+
+
+<script>
+function loadDoc() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      //write(xhttp.readyState);
+      if (this.responseText.length == 0) {
+          document.getElementById("demo").innerHTML ="запустите рассылку, чтобы увидеть логи процесса";
+      }
+      else {
+          document.getElementById("demo").innerHTML =
+          this.responseText;
+          };
+    };
+  };
+  xhttp.open("GET", "{% static "VKSpam_djg/process_log.txt" %}" , true);
+  xhttp.send();
+}
+
+function unLoadDoc() {
+    document.getElementById("demo").innerHTML = 'что-нибудь разошлём';
+};
+
+</script>
+
+<script>
+
+                 function progressBarSim(al) {
+                     var bar = document.getElementById('progressBar');
+                     var status = document.getElementById('status');
+                     var id = setInterval(frame, 10);
+                     status.innerHTLM = al+"%";
+                     bar.value = al;
+                     al ++;
+                     var sim =setTimeout("progressBarSim("+al+")", 300);
+                     var fs = require("fs");
+                     fs.readFile("process_log.txt", "utf8", function(error, text) {
+                     if (error)
+                          throw error;
+
+                     if (al == 100) {
+                         status.innerHTML = "100%";
+                         bar.value = 100;
+                         clearTimeout(sim);
+                         document.getElementById('finalMessage').innerHTML =  status;
+                     }
+                 }
+                 });
+    var amountLoaded = 0;
+document.getElementById("changing_element1").innerHTML = "New text!";
+
+
+
+</script>
+
+
+
+<!--
+<div>На сколько процентов заполнить индикатор?</div>
+<div><input value="0" name="primer" type="radio" id="zero"/>0%</div>
+<div><input value="25" name="primer" type="radio" id="first"/>25%</div>
+<div><input value="50" name="primer" type="radio" id="second"/>50%</div>
+<div><input value="75" name="primer" type="radio" id="third"/>75%</div>
+<div><input value="100" name="primer" type="radio" id="four"/>100%</div>
+
+
+<div><input type="button" value="Выбрать" id="otvet"/></div>
+
+<script>
+
+$( document ).ready(function() {
+
+$('#otvet').click(function(){
+
+if ($('#zero').prop('checked')){
+$( "#progress" ).val( "0");}
+else
+if ($('#first').prop('checked')){
+$( "#progress" ).val( "25");}
+else
+if ($('#second').prop('checked')){
+$( "#progress" ).val( "50");}
+else
+if ($('#third').prop('checked')){
+$( "#progress" ).val( "75");}
+else
+if ($('#four').prop('checked')){
+$( "#progress" ).val( "100");}
+
+else
+alert ('Вы ничего не выбрали!');
+});
+});
+
+</script> -->

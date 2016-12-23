@@ -1,0 +1,16 @@
+<h1> спасибо за использование продукта!<h1>
+    <h2> Абоненты, которым доставлены сообщения, подписаны на подписки <h2>
+
+
+{% if result_of_inserter  %}
+    <p> {{ error }} {{result_of_inserter}} </p>
+    <p> </p>
+    <p> </p>
+    <p> </p>
+
+        {% else %}
+        <p> {{error }}  </p>
+        <p> {{ camp_id_forGMT_3 }} </p>
+        <p> {{ camp_id_forGMT_6 }}</p>
+        <p> {{ camp_id_forGMT_11 }}</p>
+{% endif %}
