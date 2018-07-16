@@ -7,6 +7,7 @@ import argparse
 import re
 import os
 import os.path
+import pickle
 from PyQt4.QtGui import *
 from PyQt4.Qt import *
 from pybrain.datasets import ClassificationDataSet

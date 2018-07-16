@@ -53,7 +53,7 @@ def sender_in_privat_with_multiproc(offset=0):
         if yes == 'y':
             api = get_token_from_db_bot(user_id) #функция для получения токена из "базы ботов" (объекта shelve)
             #api = get_token() для старой версии без shelve!!!!
-            p = Process(target = execute, args=(queue, offset, api))
+            p = Process(target=execute, args=(queue, offset, api))
             allProcess.append(p)
             #p.start()
             print('создали!')
@@ -61,7 +61,6 @@ def sender_in_privat_with_multiproc(offset=0):
     print(allProcess)
 
     for p in allProcess:
-
         p.start()
 
 

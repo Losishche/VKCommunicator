@@ -12,7 +12,9 @@ def connection_to_postgres():
         "host='{0}' dbname='{1}' user='{2}' password='{3}'".format(settings.postgres_database_settings['HOST'],
                                                                    settings.postgres_database_settings['DB'],
                                                                settings.postgres_database_settings['USER'],
-                                                                   settings.postgres_database_settings['PASSWORD']))
+                                                                   settings.postgres_database_settings['PASSWORD'])
+    )
+
     postgres_cur = postgres_con.cursor()
     return postgres_con, postgres_cur
 
