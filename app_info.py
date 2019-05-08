@@ -847,16 +847,17 @@ def get_auth_params_from_interface(vk_app_id=None):
         app_id = vk_app_id
         print('идентификатор выпавшего приложения', app_id)
         # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
+        # ВКОНТАКТ ВЫПИЛИЛ ПРАВО НА получение токена для messages ! поэтому его здесь нет!
         url_for_token = (
             "https://oauth.vk.com/authorize?client_id={app_id}"
-            "&scope=wall,messages,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"  
+            "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"  
             "&display=page&response_type=token".format(app_id=app_id)
         )
     else:
         # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
         url_for_token = (
             "https://oauth.vk.com/authorize?client_id={app_id}"
-            "&scope=wall,messages,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html" 
+            "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html" 
             "&display=page&response_type=token".format(app_id=APP_ID)
         )
     webbrowser.open_new_tab(url_for_token)
@@ -872,14 +873,15 @@ def get_token_by_inner_driver(login, password, auth_url = 'https://vk.com/login'
         # если передан список id приложений, выбираем приложение рандомно
         app_id = vk_app_list.get(id = random.randint(1, len(vk_app_list))).vk_app_id
         # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
+        # ВКОНТАКТ ВЫПИЛИЛ ПРАВО НА получение токена для messages ! поэтому его здесь нет!
         url_for_token = ("https://oauth.vk.com/authorize?client_id={app_id}"
-                         "&scope=wall,messages,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"
+                         "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"
                          "&display=page&response_type=token".format(app_id=app_id)
                          )
     else:
         # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
         url_for_token = ("https://oauth.vk.com/authorize?client_id={app_id}"
-                         "&scope=wall,messages,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"
+                         "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"
                          "&display=page&response_type=token".format(app_id=APP_ID)
                          )
     chrome_browser.get(auth_url)
@@ -1142,12 +1144,40 @@ attachments = [
 # ИМЕННО ИЗ ПЛЕЙЛИСТА ГРУППЫ (НЕ СО СТЕНЫ и ТД)!
 # ОСТАЛЬНОЕ ЗАБЛОКИРОВАНО ВК
 
-#Через поля и облака
-attachments_for_photo_comment_for_woman = [
-    'audio-49887978_456239017'
-]
+# Через поля и облака
+# attachments_for_photo_comment_for_woman = [
+#     'audio-49887978_456239017'
+# ]
+# attachments_for_photo_comment_for_man = [
+#     'audio-49887978_456239017'
+# ]
+
+# Контролируй Сердце Солнца
+# attachments_for_photo_comment_for_woman = [
+#     'audio-49887978_456239019'
+# ]
+# attachments_for_photo_comment_for_man = [
+#     'audio-49887978_456239019'
+# ]
+
+# ТОК!
+# attachments_for_photo_comment_for_man = [
+#     'audio-49887978_456239021'
+# ]
+
+# ТОК!
+# attachments_for_photo_comment_for_woman = [
+#     'audio-49887978_456239021'
+# ]
+
+# ИзСебя
 attachments_for_photo_comment_for_man = [
-    'audio-49887978_456239017'
+    'audio-49887978_456239022'
+]
+
+# ИзСебя
+attachments_for_photo_comment_for_woman = [
+    'audio-49887978_456239022'
 ]
 
 photo_old = ['audio-41360940_456239024', 'audio-41360940_456239025', 'photo-41360940_378305307']

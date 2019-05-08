@@ -11,6 +11,7 @@ from multiprocessing import Process, Queue
 import io,sys
 import time
 
+
 class InnerServer():
     pass
 
@@ -18,38 +19,39 @@ class InnerServer():
 class flushfile(object):
     def __init__(self, f):
         self.f = f
+
     def write(self, x):
         self.f.write(x)
         self.f.flush()
 
 
 class InnerServerConnections():
-    #todo оформить классы соединений и сокетов через наследование!!!
+    # todo оформить классы соединений и сокетов через наследование!!!
     def __init__(self, port):
 
         self.port =port
         self.sock = socket.socket()
         self.sock.bind(('', self.port))
-        self.sock.listen(2) #параметр - допустимое количество клиентов в очереди
+        self.sock.listen(2)  # параметр - допустимое количество клиентов в очереди
         print('создали сокет!')
 
-    #архитектура КАПеЦ, но зато поупражнялся с классами
+    # архитектура КАПеЦ, но зато поупражнялся с классами
     def accept_and_handling_client_for_photo_comment(self):
 
         self.conn, self.addr = self.sock.accept() #блокирует, сволочь, приложение
         #sys.stdout = flushfile(sys.stdout) #перенаправляем вывод в файл!!!!
         print('accepting ', self.port)
         self.data = self.conn.recv(1024)
-        self.data= self.data.decode('utf8')
+        self.data = self.data.decode('utf8')
         print(self.data)
         state = True
         while state:
             try:
-                if self.data=='start_commenting_photo':
+                if self.data == 'start_commenting_photo':
                     self.conn.send(b'start_commenting_photo_resp')
                     print(self.data)
                     self.data = self.conn.recv(1024)
-                    self.data=self.data.decode('utf8')
+                    self.data = self.data.decode('utf8')
                     self.arg_list = self.data.split(',')
                     self.vk_group_id = self.arg_list[0]
                     api, postgres_con, postgres_cur = get_important_params()
@@ -87,11 +89,11 @@ class InnerServerConnections():
                     print('передан неизвестный параметр', self.data)
                     self.conn.send(b'unknown_parameter')
                     self.conn, self.addr = self.restart_accepting_conn('photo')
-                #except vk.exceptions.VkAPIError:
+                # except vk.exceptions.VkAPIError:
                     #print('captcha exception again')
                     #conn.send(b'end_of_sending')
                     #conn, addr = restart_accepting_conn(conn, sock)
-                #except StopIteration:
+                # except StopIteration:
                     #conn.send(b'end_of_sending')
                     #print('Stop_iteration')
                     #conn, addr = restart_accepting_conn(conn, sock)
@@ -103,7 +105,7 @@ class InnerServerConnections():
 
     def accept_and_handling_client_for_wall_comment(self):
 
-        self.conn, self.addr = self.sock.accept() #блокирует, сволочь, приложение
+        self.conn, self.addr = self.sock.accept() # блокирует, сволочь, приложение
         print('accepting ', self.port)
         self.data = self.conn.recv(1024)
         self.data=self.data.decode('utf8')
@@ -122,7 +124,7 @@ class InnerServerConnections():
                     print(vk_group_id)
                     api, postgres_con, postgres_cur = get_important_params()
                     self.generator_for_wall_posting = many_posts_wall_message(api, postgres_con, postgres_cur, vk_group_id, is_run_from_interface=True)
-                    #many_posts_wall_message(api, postgres_con, postgres_cur, vk_group_id)
+                    # many_posts_wall_message(api, postgres_con, postgres_cur, vk_group_id)
                     gen_result = None
                     while gen_result != 'handling_exception_captcha needed': #этот сигнал является сигналом генератора, а не внутреннего сервера!
                         gen_result = next(self.generator_for_wall_posting)

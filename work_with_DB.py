@@ -5,9 +5,9 @@ import settings
 import logging
 
 def connection_to_postgres():
-    #ДОДЕЛАТЬ!!!
-    #получение объектов подключения и курсора к БД
-    #есть дублирование кода в APP_INFo
+    # ДОДЕЛАТЬ!!!
+    # получение объектов подключения и курсора к БД
+    # есть дублирование кода в APP_INFo
     postgres_con = psycopg2.connect(
         "host='{0}' dbname='{1}' user='{2}' password='{3}'".format(settings.postgres_database_settings['HOST'],
                                                                    settings.postgres_database_settings['DB'],
@@ -35,9 +35,9 @@ def select_group_users_union_from_inner_db_FOR_UPDATE(postgres_con, postgres_cur
         try:
             response = postgres_cur.execute(query)
             result = postgres_cur.fetchall()
-            #print(result)
+            # print(result)
             if postgres_cur.statusmessage !=0:
-                return result #str(postgres_cur.statusmessage)
+                return result # str(postgres_cur.statusmessage)
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
@@ -50,9 +50,9 @@ def select_group_users_union_from_inner_db_FOR_UPDATE(postgres_con, postgres_cur
         try:
             response = postgres_cur.execute(query)
             result = postgres_cur.fetchall()
-            #print(result)
+            # print(result)
             if postgres_cur.statusmessage !=0:
-                return result #str(postgres_cur.statusmessage)
+                return result # str(postgres_cur.statusmessage)
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
@@ -61,13 +61,13 @@ def select_group_users_union_from_inner_db_FOR_UPDATE(postgres_con, postgres_cur
 
 def select_count_have_posted_ava_messages(postgres_con, postgres_cur, group_id=None):
 
-    '''
+    """
     запрашивает количество пользователей ВК, которым отправлены комменты к фото(аватаркам)
     :param postgres_con:
     :param postgres_cur:
     :param group_id:
     :return:
-    '''
+    """
 
     if group_id is None:
         query = '''
@@ -77,7 +77,7 @@ def select_count_have_posted_ava_messages(postgres_con, postgres_cur, group_id=N
         try:
             response = postgres_cur.execute(query)
             result = postgres_cur.fetchall()
-            #print(result)
+            # print(result)
             if postgres_cur.statusmessage !=0:
                 return result
         except psycopg2.IntegrityError:
@@ -89,9 +89,9 @@ def select_count_have_posted_ava_messages(postgres_con, postgres_cur, group_id=N
             AND vk_group_id = '{}'
         '''.format(group_id)
         try:
-            response = postgres_cur.execute(query)
+            postgres_cur.execute(query)
             result = postgres_cur.fetchall()
-            #print(result)
+            # print(result)
             if postgres_cur.statusmessage !=0:
                 return result
         except psycopg2.IntegrityError:
@@ -108,7 +108,7 @@ def select_vk_errors(postgres_con, postgres_cur, error_id = None):
         try:
             response = postgres_cur.execute(query)
             result = postgres_cur.fetchall()
-            #print(result)
+            # print(result)
             if postgres_cur.statusmessage !=0:
                 return result
         except psycopg2.IntegrityError:

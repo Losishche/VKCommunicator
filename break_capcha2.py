@@ -3,7 +3,7 @@ __author__ = 'grishaev'
 import sys, os
 import math
 import string
-#import Image
+# import Image
 import PIL.ImageChops
 
 from PIL import Image
@@ -14,9 +14,8 @@ print(help(im.convert))
 im = im.convert("L", dither=10)
 his = im.histogram()
 
-
 im.show()
-for color in range(0,256):
+for color in range(0, 256):
     print(im.getcolors(color))
 
 
@@ -26,25 +25,25 @@ values = {}
 for i in range(256):
   values[i] = his[i]
 
-for j,k in sorted(values.items(), key=itemgetter(1), reverse=True)[:10]:
-  print(j,k)
+for j, k in sorted(values.items(), key=itemgetter(1), reverse=True)[: 10]:
+  print(j, k)
 
-im2 = Image.new("L",im.size,256)
-#im = im.convert("P")
+im2 = Image.new("L", im.size, 256)
+# im = im.convert("P")
 
 temp = {}
 
 lis = []
 for x in range(256):
-    if x  in [218, 219, 220, 217, 242] :
+    if x in [218, 219, 220, 217, 242]:
         lis.append(x)
 
 for x in range(im.size[1]):
-  for y in range(im.size[0]):
-    pix = im.getpixel((y,x))
-    temp[pix] = pix
-    if pix in lis: # these are the numbers to get
-      im2.putpixel((y,x),0)
+    for y in range(im.size[0]):
+        pix = im.getpixel((y, x))
+        temp[pix] = pix
+        if pix in lis:  # these are the numbers to get
+            im2.putpixel((y, x), 0)
 
 im2.save("output.gif")
 
