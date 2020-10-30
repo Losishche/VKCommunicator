@@ -7,7 +7,7 @@
     <script src="http://code.jquery.com/jquery-2.0.2.min.js"></script>
 <script>
     $(document).ready(function(){
-        //Скрыть PopUp при загрузке страницы
+    //Скрыть PopUp при загрузке страницы
         PopUpHide();
     });
     //Функция отображения PopUp
@@ -17,6 +17,12 @@
     //Функция скрытия PopUp
     function PopUpHide(){
         $("#popup1").hide();
+    }
+
+    function PaintSetUpCampaignForm() {
+        document.write(Date())
+        var wrap = this.getContent().find("div.camp_id");
+        document.write(wrap)
     }
 </script>
 
@@ -30,25 +36,28 @@
 
 
 {% for camp in campaign_list %}
-  <a> цикл по кампаниям с помощью ListView</a>
- <div>{{  camp.id }}</div>
+  <a> цикл по кампаниям с помощью ListView <br clear="left">
 
-<div class="b-container">
-    Sample Text
-    <a href="javascript:PopUpShow()">Show popup</a>
-</div>
-<div class="b-popup" id="popup1">
+    <div class="b-container">
+        {{  camp.id }} <br>
+        {{  camp.ava_attach }} <br>
+        <a href="javascript:PopUpShow()"> Редактировать </a>
+    </div>
+  </a>
+
+      {% empty %}
+        <p>Кампаний не обнаружено:( </p>
+{% endfor %}
+
+ <div class="b-popup" id="popup1">
     <div class="b-popup-content">
-        <script>        document.write(Date());</script>
-
-    <a href="javascript:PopUpHide()">Hide popup</a>
+        <script> PaintSetUpCampaignForm();
+        </script>
+    <br>
+    <a href="javascript:PopUpHide()"> Закрыть окно </a>
     </div>
 </div>
 
-  {% empty %}
-        <p>Кампаний не обнаружено:( </p>
-
-{% endfor %}
 
 </body>
 </html>

@@ -21,10 +21,14 @@ import logging
 import shelve
 import os
 from django import db
+
 # -*- coding: utf-8 -*-
 
+# версия api вКонтакте
+api_vk_version = 5.21
+
 # нумерация приложений идёт в обратном порядке
-app_id_1 = 5556034 # идентификатор приложения
+app_id_1 = 5556034  # идентификатор приложения
 app_name_1 = 'CommonApp'
 protected_key_2 = 'F0eYCZDPxh4rtawBEca5'
 
@@ -36,13 +40,13 @@ app_id = 5786026
 protected_key = 'jS8ah0U0wlHiw5h252ZJ'
 
 proccess_log_file_path = \
-    '/home/agrishaev/PycharmProjects/VKSpammer/VKSpammer/VKSpam_djg/static/VKSpam_djg/process_log.txt'
-logger_for_communicator = logging.getLogger('logger_for_communicator')
-logger_for_communicator.setLevel(logging.INFO)
+    '/home/grishaev/PycharmProjects/VKSpammer/VKSpammer/VKSpam_djg/static/VKSpam_djg/process_log.txt'
+chromeDriverPath = '/home/grishaev/PycharmProjects/VKSpammer/WebDriver/chromedriver'
+logger = logging.getLogger('logger_for_communicator')
+logger.setLevel(logging.INFO)
 fh = logging.FileHandler(proccess_log_file_path)
 fh.setLevel(logging.INFO)
-logger_for_communicator.addHandler(fh)
-
+logger.addHandler(fh)
 
 # инициализация файла c ботами
 if os.path.exists('.db_vk_bots') is not True:
@@ -63,7 +67,7 @@ def connection_to_postgres():
     postgres_con = psycopg2.connect(
         connection_string
     )
-    #print(dir(psycopg2))
+    # print(dir(psycopg2))
     print("объект подключения", postgres_con)
     # postgres_con.set_isolation_level(0)
     postgres_cur = postgres_con.cursor()
@@ -102,7 +106,6 @@ def upd_cursor_for_postgres(conn, cur):
 
 
 def make_and_do_insert_records_to_cities(postgres_con, postgres_cur, list_of_dict_cities):
-
     """
     записывает города из VK в базу. По сути одноразовая вспомогательная ф-я
     в кортеже необходимо всегда передавать регион (нужно учитывать, что апи VK не возвращает регион для некоторых городов)
@@ -127,14 +130,13 @@ def make_and_do_insert_records_to_cities(postgres_con, postgres_cur, list_of_dic
         postgres_cur.executemany(query, list_of_dict_cities)
         # postgres_cur.execute(query)
         postgres_con.commit()
-        if postgres_cur.statusmessage !=0:
+        if postgres_cur.statusmessage != 0:
             return str(postgres_cur.statusmessage)
     except psycopg2.IntegrityError:
         logging.warning('{}'.format('ОШИБКА ЗАПИСИ В БД VKSpammer'))
 
 
 def insert_records_to_vk_group_user(postgres_con, postgres_cur, tupl_member_of_group):
-
     # можно охренеть, но в типах данных ТУТ именно ДОЛЖНЫ быть строки, независимо от фактического типа!
     query = '''
             INSERT into vk_group_user(vk_id, last_name, can_write_private_message, first_name)
@@ -148,7 +150,7 @@ def insert_records_to_vk_group_user(postgres_con, postgres_cur, tupl_member_of_g
         postgres_cur.executemany(query, tupl_member_of_group)
         # postgres_cur.execute(query)
         postgres_con.commit()
-        if postgres_cur.statusmessage !=0:
+        if postgres_cur.statusmessage != 0:
             return str(postgres_cur.statusmessage)
     except psycopg2.IntegrityError:
         logging.warning('{}'.format('ОШИБКА ЗАПИСИ В БД VKSpammer'))
@@ -182,7 +184,7 @@ def make_insert_records_to_vk_group_user_union(postgres_con, postgres_cur, tupl_
     lis_member_of_group = list(tupl_member_of_group)
 
     for member in lis_member_of_group:
-        if member.get('uid') in vk_user_ids:# может быть другой ключ??
+        if member.get('uid') in vk_user_ids:  # может быть другой ключ??
             print('повторяющийся пользователь', member)
             # если есть в списке-ответе БД, то НЕ ДОБАВЛЯЕМ!!
             continue
@@ -204,7 +206,7 @@ def make_insert_records_to_vk_group_user_union(postgres_con, postgres_cur, tupl_
     query = '''
             INSERT into vk_group_user_union_2(vk_id, last_name, can_write_private_message, first_name,
             sex, city, bdate, vk_group_id)
-            VALUES (%(uid)s, %(last_name)s, %(can_write_private_message)s, %(first_name)s,
+            VALUES (%(id)s, %(last_name)s, %(can_write_private_message)s, %(first_name)s,
              %(sex)s, %(city)s, %(bdate)s, '{}')'''.format(group_id)
 
     try:
@@ -239,7 +241,7 @@ def make_insert_records_to_aim_group(postgres_con, postgres_cur, tupl_member_of_
         response = postgres_cur.execute(query_for_select_existing_records)
         result = postgres_cur.fetchall()
         # print(result)
-        if postgres_cur.statusmessage !=0:
+        if postgres_cur.statusmessage != 0:
             print(str(postgres_cur.statusmessage))
     except psycopg2.IntegrityError:
         logging.warning('{}'.format('ОШИБКА ЧТЕНИЯ БД VKSpammer'))
@@ -251,7 +253,7 @@ def make_insert_records_to_aim_group(postgres_con, postgres_cur, tupl_member_of_
     lis_member_of_group = list(tupl_member_of_group_from_vk)
 
     for member in lis_member_of_group:
-        if member.get('uid') in aim_group_user_ids: # может быть другой ключ??
+        if member.get('uid') in aim_group_user_ids:  # может быть другой ключ??
             print('повторяющийся пользователь', member)
             # если есть в списке-ответе БД, то НЕ ДОБАВЛЯЕМ!!
             continue
@@ -280,7 +282,7 @@ def make_insert_records_to_aim_group(postgres_con, postgres_cur, tupl_member_of_
         postgres_cur.executemany(query, tupl_member_of_group)
         # postgres_cur.execute(query)
         postgres_con.commit()
-        if postgres_cur.statusmessage !=0:
+        if postgres_cur.statusmessage != 0:
             return str(postgres_cur.statusmessage)
     except psycopg2.IntegrityError:
         logging.warning('{}'.format('ОШИБКА ЗАПИСИ В БД VKSpammer'))
@@ -288,7 +290,6 @@ def make_insert_records_to_aim_group(postgres_con, postgres_cur, tupl_member_of_
 
 
 def update_to_vk_group_user(postgres_con, postgres_cur, uid):
-
     query = '''
         UPDATE vk_group_user
         SET have_sent_messages = 'true'
@@ -297,7 +298,6 @@ def update_to_vk_group_user(postgres_con, postgres_cur, uid):
 
 
 def update_to_vk_group_user_union_ava_id(postgres_con, postgres_cur, avatar_id, vk_id, group_id=None):
-
     query = '''
         UPDATE vk_group_user_union_2
         SET avatar_id = {}
@@ -306,7 +306,7 @@ def update_to_vk_group_user_union_ava_id(postgres_con, postgres_cur, avatar_id, 
     try:
         postgres_cur.execute(query.format(avatar_id, vk_id))
         postgres_con.commit()
-        if postgres_cur.statusmessage !=0:
+        if postgres_cur.statusmessage != 0:
             return str(postgres_cur.statusmessage)
     except psycopg2.IntegrityError:
         logging.warning('{}'.format('ОШИБКА ЗАПИСИ В БД VKSpammer'))
@@ -315,7 +315,6 @@ def update_to_vk_group_user_union_ava_id(postgres_con, postgres_cur, avatar_id, 
 def update_to_vk_group_user_union_can_comment_ava(
         postgres_con, postgres_cur, avatar_id, vk_id, can_comment_ava, group_id=None
 ):
-
     query = '''
         UPDATE vk_group_user_union_2
         SET can_post_ava_comment = {}
@@ -332,7 +331,7 @@ def update_to_vk_group_user_union_can_comment_ava(
         try:
             postgres_cur.execute(query.format('true', vk_id, avatar_id))
             postgres_con.commit()
-            if postgres_cur.statusmessage !=0:
+            if postgres_cur.statusmessage != 0:
                 return str(postgres_cur.statusmessage)
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ЗАПИСИ В БД VKSpammer'))
@@ -389,7 +388,6 @@ def update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur
 
 
 def update_to_vk_wall_post_state_group_user_union(postgres_con, postgres_cur, uid, can_post_wall_comment=True):
-
     if can_post_wall_comment is True:
         query = '''
             UPDATE vk_group_user_union_2
@@ -422,7 +420,6 @@ def update_to_vk_wall_post_state_group_user_union(postgres_con, postgres_cur, ui
 
 
 def update_to_vk_group_user_union(postgres_con, postgres_cur, uid, didnt_send=False):
-
     if didnt_send is False:
         query = '''
             UPDATE vk_group_user_union_2
@@ -467,7 +464,6 @@ def update_to_vk_group_user_friend_added(postgres_con, postgres_cur, inner_uid):
 
 
 def select_group_users_from_inner_db(postgres_con, postgres_cur, group_id=0):
-
     query = '''
         SELECT * FROM vk_group_user
         WHERE have_sent_messages is not true and  can_write_private_message=1
@@ -477,7 +473,7 @@ def select_group_users_from_inner_db(postgres_con, postgres_cur, group_id=0):
         result = postgres_cur.fetchall()
         # print(result)
         if postgres_cur.statusmessage != 0:
-            return result # str(postgres_cur.statusmessage)
+            return result  # str(postgres_cur.statusmessage)
     except psycopg2.IntegrityError:
         logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
@@ -498,11 +494,11 @@ def select_all_users_union_from_inner_db(postgres_con, postgres_cur, group_id=No
                 ORDER BY id
                 '''
         try:
-            logger_for_communicator.info('{}: we are using postgres_conn: {}'.format(datetime.now(), postgres_con))
+            logger.info('{}: we are using postgres_conn: {}'.format(datetime.now(), postgres_con))
             postgres_cur.execute(query)
             result = postgres_cur.fetchall()
             # print(result)
-            if postgres_cur.statusmessage !=0:
+            if postgres_cur.statusmessage != 0:
                 return result  # str(postgres_cur.statusmessage)
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
@@ -517,14 +513,13 @@ def select_all_users_union_from_inner_db(postgres_con, postgres_cur, group_id=No
             postgres_cur.execute(query.format(group_id))
             result = postgres_cur.fetchall()
             # print(result)
-            if postgres_cur.statusmessage !=0:
+            if postgres_cur.statusmessage != 0:
                 return result  # str(postgres_cur.statusmessage)
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
 
 def select_group_users_union_from_inner_db(postgres_con, postgres_cur, group_id=None):
-
     # todo разобраться с необходимостью условия в запросе!!! Видимо, это устарело!!!
     """
     выборка данных по пользователям групп из внутренней DB
@@ -541,12 +536,12 @@ def select_group_users_union_from_inner_db(postgres_con, postgres_cur, group_id=
                 ORDER BY id
         '''
         try:
-            logger_for_communicator.info('{}: we are using postgres_conn: {}'.format(datetime.now(), postgres_con))
+            logger.info('{}: we are using postgres_conn: {}'.format(datetime.now(), postgres_con))
             postgres_cur.execute(query)
             result = postgres_cur.fetchall()
             # print(result)
-            if postgres_cur.statusmessage !=0:
-                return result # str(postgres_cur.statusmessage)
+            if postgres_cur.statusmessage != 0:
+                return result  # str(postgres_cur.statusmessage)
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
@@ -561,7 +556,7 @@ def select_group_users_union_from_inner_db(postgres_con, postgres_cur, group_id=
             result = postgres_cur.fetchall()
             # print(result)
             if postgres_cur.statusmessage != 0:
-                return result # str(postgres_cur.statusmessage)
+                return result  # str(postgres_cur.statusmessage)
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
@@ -593,18 +588,18 @@ def select_min_max_unhandled_id_gr_user_union(postgres_con, postgres_cur, group_
     '''.format(group_id)
     try:
         print(query_for_min)
-        logger_for_communicator.info('{}: we are using postgres_conn: {}'.format(datetime.now(), postgres_con))
+        logger.info('{}: we are using postgres_conn: {}'.format(datetime.now(), postgres_con))
         response = postgres_cur.execute(query_for_min)
         min_id = postgres_cur.fetchall()[0][0]
-        logger_for_communicator.debug('{}: response for min, {}'.format(datetime.now(), response))
+        logger.debug('{}: response for min, {}'.format(datetime.now(), response))
         response = postgres_cur.execute(query_for_max)
-        logger_for_communicator.debug('{}: response for max, {}'.format(datetime.now(), response))
+        logger.debug('{}: response for max, {}'.format(datetime.now(), response))
         max_id = postgres_cur.fetchall()[0][0]
         print(min_id, max_id)
         return min_id, max_id
     except psycopg2.IntegrityError:
         print('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
-        logger_for_communicator.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
+        logger.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
 
 def select_gr_users_union_from_inner_db_for_multiproc(postgres_con, postgres_cur, group_id, min_id, max_id):
@@ -637,7 +632,7 @@ def select_gr_users_union_from_inner_db_for_multiproc(postgres_con, postgres_cur
         # print(result)
         # time.sleep(5)
         # print(result)
-        if postgres_cur.statusmessage !=0:
+        if postgres_cur.statusmessage != 0:
             return result  # str(postgres_cur.statusmessage)
     except psycopg2.IntegrityError:
         logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
@@ -649,7 +644,6 @@ def make_tuple_for_insert_record_to_vk_group_user(dict_res_members_of_group):
 
 
 def select_users_info(postgres_con, postgres_cur, group_id=None, min_value=None, offset=None):
-
     if group_id:
         query = '''
             SELECT * FROM vk_group_user_union_2
@@ -660,7 +654,7 @@ def select_users_info(postgres_con, postgres_cur, group_id=None, min_value=None,
             result = postgres_cur.fetchall()
             # print(result)
             if postgres_cur.statusmessage != 0:
-                return result # str(postgres_cur.statusmessage)
+                return result  # str(postgres_cur.statusmessage)
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
@@ -673,8 +667,8 @@ def select_users_info(postgres_con, postgres_cur, group_id=None, min_value=None,
             postgres_cur.execute(query)
             result = postgres_cur.fetchall()
             # print(result)
-            if postgres_cur.statusmessage !=0:
-                return result # str(postgres_cur.statusmessage)
+            if postgres_cur.statusmessage != 0:
+                return result  # str(postgres_cur.statusmessage)
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer при работе в режиме Мультисендер'))
 
@@ -686,8 +680,8 @@ def select_users_info(postgres_con, postgres_cur, group_id=None, min_value=None,
             postgres_cur.execute(query)
             result = postgres_cur.fetchall()
             # print(result)
-            if postgres_cur.statusmessage !=0:
-                return result # str(postgres_cur.statusmessage)
+            if postgres_cur.statusmessage != 0:
+                return result  # str(postgres_cur.statusmessage)
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
@@ -736,7 +730,7 @@ def delete_duplicate_records_of_users_from_db(postgres_con, postgres_cur, users)
 def save_db_vk_bots(access_token, expires_in, user_id, filename='.db_vk_bots'):
     with shelve.open(filename) as db:
         expires = datetime.now() + timedelta(seconds=int(expires_in))
-        db[user_id] = [access_token,  expires]
+        db[user_id] = [access_token, expires]
         return 'OK'
 
 
@@ -747,7 +741,7 @@ def get_saved_auth_params_from_db_bots(user_id, filename='.db_vk_bots'):
     :param filename:
     :return:
     """
-    access_token= None
+    access_token = None
     try:
         with shelve.open(filename) as db_file:
             # print(db_file.get(user_id))
@@ -820,7 +814,7 @@ def get_auth_params(flag=False, vk_app_list=None):
     """
     if vk_app_list:
         # если передан список id приложений, выбираем приложение рандомно
-        app_id = vk_app_list[random.randint(0, len(vk_app_list)-1)]
+        app_id = vk_app_list[random.randint(0, len(vk_app_list) - 1)]
         auth_url = ("https://oauth.vk.com/authorize?client_id={app_id}"
                     "&scope=wall,messages,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"  # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
                     "&display=page&response_type=token".format(app_id=app_id))
@@ -850,28 +844,28 @@ def get_auth_params_from_interface(vk_app_id=None):
         # ВКОНТАКТ ВЫПИЛИЛ ПРАВО НА получение токена для messages ! поэтому его здесь нет!
         url_for_token = (
             "https://oauth.vk.com/authorize?client_id={app_id}"
-            "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"  
+            "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"
             "&display=page&response_type=token".format(app_id=app_id)
         )
     else:
         # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
         url_for_token = (
             "https://oauth.vk.com/authorize?client_id={app_id}"
-            "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html" 
+            "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"
             "&display=page&response_type=token".format(app_id=APP_ID)
         )
     webbrowser.open_new_tab(url_for_token)
 
 
-def get_token_by_inner_driver(login, password, auth_url = 'https://vk.com/login', delay=10, vk_app_list=None):
+def get_token_by_inner_driver(login, password, auth_url='https://vk.com/login', delay=10, vk_app_list=None):
     """
     получение токена с сайта при работе через интерфейс с помощью драйвера браузера
     """
     # путь для запуска драйвера браузера
-    chrome_browser = webdriver.Chrome('/home/agrishaev/PycharmProjects/VKSpammer/WebDriver/chromedriver')
+    chrome_browser = webdriver.Chrome(chromeDriverPath)
     if vk_app_list:
         # если передан список id приложений, выбираем приложение рандомно
-        app_id = vk_app_list.get(id = random.randint(1, len(vk_app_list))).vk_app_id
+        app_id = vk_app_list.get(id=random.randint(1, len(vk_app_list))).vk_app_id
         # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
         # ВКОНТАКТ ВЫПИЛИЛ ПРАВО НА получение токена для messages ! поэтому его здесь нет!
         url_for_token = ("https://oauth.vk.com/authorize?client_id={app_id}"
@@ -901,9 +895,9 @@ def get_token_by_inner_driver(login, password, auth_url = 'https://vk.com/login'
         print("найдена кнопка для разрешения приложения", elem_for_app_allow)
         print(dir(elem_for_app_allow))
         # time.sleep(300)
-        time.sleep(delay-7)
+        time.sleep(delay - 7)
         elem_for_app_allow.click()
-        time.sleep(delay-7)
+        time.sleep(delay - 7)
     except NoSuchElementException:
         print('кнопка разрешения не найдена')
     # input()
@@ -931,6 +925,7 @@ def parse_and_save_auth_params(redirected_url):
     )
     return aup['access_token'][0], aup['user_id'][0], aup['expires_in']
 
+
 '''
 def get_for_audio_token():
     auth_url = ("https://oauth.vk.com/authorize?client_id={app_id}"
@@ -947,11 +942,11 @@ def get_for_audio_token():
 '''
 
 
-def autentification_in_vk_via_web_dr(login, password, auth_url = 'https://vk.com/login', activity_time=300):
+def autentification_in_vk_via_web_dr(login, password, auth_url='https://vk.com/login', activity_time=300):
     """
     получение токена с сайта при работе через интерфейс
     """
-    chrome_browser = webdriver.Chrome('/home/agrishaev/PycharmProjects/VKSpammer/WebDriver/chromedriver')
+    chrome_browser = webdriver.Chrome(chromeDriverPath)
 
     chrome_browser.get(auth_url)
     elem_for_email = chrome_browser.find_element_by_id("email")
@@ -962,7 +957,7 @@ def autentification_in_vk_via_web_dr(login, password, auth_url = 'https://vk.com
     elem_for_pass.send_keys(password)
     elem_for_email.submit()
     time.sleep(activity_time)
-    # time.sleep(300)
+    # return chrome_browser
     return 'OK'
 
 
@@ -1020,11 +1015,14 @@ def work_with_RuCaptcha() -> object:
         'id': captcha_id
     }
     status = False
+    pause_between_requests = 0
+    step_for_increasing_pause = 5
     while not status:
         res_captcha = requests.get(res_host, res_data)
         if res_captcha.text == 'CAPCHA_NOT_READY':
             print(res_captcha.text)
-            time.sleep(5)
+            pause_between_requests += step_for_increasing_pause
+            time.sleep(pause_between_requests)
         elif res_captcha.text[:2] == 'OK':
             print('разгаданная каптча', res_captcha.text)
             status = True
@@ -1075,7 +1073,7 @@ def get_user_info(api, nick_or_id):
     :param nick_or_id:
     :return:
     """
-    res = api.users.get(user_ids=nick_or_id, version=5.0)
+    res = api.users.get(user_ids=nick_or_id, v=api_vk_version)
     return res
 
 
@@ -1095,9 +1093,10 @@ def get_photo_params(api, vk_user_id, photo_id):
     photos = []
     str_user_id_photo_id = '{}_{}'.format(vk_user_id, photo_id)
     photos.append(str_user_id_photo_id)
-    resul = api.photos.getById(photos=photos, extended=1, version=5.0)
+    resul = api.photos.getById(photos=photos, extended=1, v=api_vk_version)
     print(resul)
     return resul
+
 
 # неправильно! надо чтобы был кортеж, а не словарь!
 our_users = [
@@ -1138,7 +1137,7 @@ attachments = [
 # Скотч
 # 'audio-61629833_251982666'
 # что-то за аудио
-#'audio-61629833_244602641'
+# 'audio-61629833_244602641'
 
 # АУДИО ID ДЛЯ ДОБАВЛЕНИЯ ДОЛЖНО БЫТЬ ВЗЯТО ИЗ ГРУППЫ,
 # ИМЕННО ИЗ ПЛЕЙЛИСТА ГРУППЫ (НЕ СО СТЕНЫ и ТД)!
@@ -1150,6 +1149,21 @@ attachments = [
 # ]
 # attachments_for_photo_comment_for_man = [
 #     'audio-49887978_456239017'
+# ]
+
+# Сломались отношения
+attachments_for_photo_comment_for_woman = [
+    'audio-49887978_456239045'
+]
+attachments_for_photo_comment_for_man = [
+    'audio-49887978_456239045'
+]
+# Нежность звёзд
+# attachments_for_photo_comment_for_woman = [
+#     'audio-49887978_456239030'
+# ]
+# attachments_for_photo_comment_for_man = [
+#     'audio-49887978_456239030'
 # ]
 
 # Контролируй Сердце Солнца
@@ -1171,21 +1185,40 @@ attachments = [
 # ]
 
 # ИзСебя
-attachments_for_photo_comment_for_man = [
-    'audio-49887978_456239022'
-]
+# attachments_for_photo_comment_for_man = [
+#     'audio-49887978_456239022'
+# ]
 
 # ИзСебя
-attachments_for_photo_comment_for_woman = [
-    'audio-49887978_456239022'
-]
+# attachments_for_photo_comment_for_woman = [
+#     'audio-49887978_456239022'
+# ]
 
 photo_old = ['audio-41360940_456239024', 'audio-41360940_456239025', 'photo-41360940_378305307']
 
 
 def add_friend(api, user_id):
-
     return api.friends.add(user_id)
+
+
+def add_wall_like(api, owner_id, wall_post_id):
+    like_res = api.likes.add(type='wall', owner_id=owner_id, item_id=wall_post_id, v=api_vk_version)
+
+
+def get_wall_posts(api, owner_id=-49887978, **kwargs):
+    """
+    получает посты, сделанные на стене целевой группы
+    :param api:
+    :param owner_id:
+    :param kwargs:
+    :return:
+    """
+    logger.info("{} - get wall posts".format(owner_id))
+    data_dict = {
+        'owner_id': owner_id,
+    }
+    logger.info(data_dict)
+    return api.wall.get(v=api_vk_version, **data_dict)
 
 
 def posts_wall_message(api, owner_id, message, attachments, **kwargs):
@@ -1206,11 +1239,10 @@ def many_posts_wall_message(
         postgres_con,
         postgres_cur,
         group_id,
-        attachments=attachments,
+        attachments_for_wall_post=attachments,
         message=None,
         is_run_from_interface=False,
         auto_captcha=False,
-        **kwargs
 ):
     tupl_members_inner = select_group_users_union_from_inner_db(postgres_con, postgres_cur, group_id)
 
@@ -1224,7 +1256,7 @@ def many_posts_wall_message(
             data_dict = {
                 'owner_id': user[1],
                 'message': message,
-                'attachments': attachments
+                'attachments': attachments_for_wall_post
             }
             # data_dict.update(**kwargs)
             try:
@@ -1249,7 +1281,7 @@ def many_posts_wall_message(
                     # интерфейса с помощью send
                     if is_run_from_interface is True:
                         if auto_captcha:
-                            save_have_got_captcha(erro) # сохраняем каптчу в файл
+                            save_have_got_captcha(erro)  # сохраняем каптчу в файл
                             captcha_inputed = work_with_RuCaptcha()
                         else:
                             webbrowser.open_new_tab(erro.error_data['captcha_img'])
@@ -1275,7 +1307,7 @@ def many_posts_wall_message(
                         captcha_inputed = input()
                         # вторая ветка исключений (обработка) на случай неверно введённой капчи
                         try:
-                            res =api.wall.post(
+                            res = api.wall.post(
                                 captcha_sid=erro.error_data['captcha_sid'],
                                 captcha_key=captcha_inputed,
                                 **data_dict
@@ -1304,27 +1336,28 @@ def deco_add_to_friends_with_message(func):
         except vk.exceptions.VkAPIError as erro:
 
             if erro.is_captcha_needed() is True and erro.message == 'Captcha needed':
-                        webbrowser.open_new_tab(erro.error_data['captcha_img'])
-                        print(erro.error_data['captcha_img'])
-                        captcha_inputed = input()
-                        captcha_sid=erro.error_data['captcha_sid']
-                        captcha_key=captcha_inputed
-                        api = args[0]
-                        res = api.friends.add(user_id=user_info[1], text=message)
-                        print('Posted SUCCESSfully!')
-                        print(res)
+                webbrowser.open_new_tab(erro.error_data['captcha_img'])
+                print(erro.error_data['captcha_img'])
+                captcha_inputed = input()
+                captcha_sid = erro.error_data['captcha_sid']
+                captcha_key = captcha_inputed
+                api = args[0]
+                res = api.friends.add(user_id=user_info[1], text=message)
+                print('Posted SUCCESSfully!')
+                print(res)
 
-                        # update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1])
-                        # пилять!!!
-                        # count += 1
-                        time.sleep(2)
+                # update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1])
+                # пилять!!!
+                # count += 1
+                time.sleep(2)
 
     return wrapper
 
 
 # @deco_add_to_friends_with_message
 def add_to_friends_with_message(
-        api, postgres_con, postgres_cur,  vk_group_id, message='', attachments=None, captcha_sid=None, captcha_key=None, **kwargs
+        api, postgres_con, postgres_cur, vk_group_id, message='', attachments=None, captcha_sid=None, captcha_key=None,
+        **kwargs
 ):
     tupl_members_inner = select_users_info(postgres_con, postgres_cur, vk_group_id)
     print(tupl_members_inner)
@@ -1333,19 +1366,19 @@ def add_to_friends_with_message(
         print(user_info[4])
 
         try:
-            if user_info[4] == 0  and user_info[9] is False and user_info[8] == -1 and user_info[13] is None:
+            if user_info[4] == 0 and user_info[9] is False and user_info[8] == -1 and user_info[13] is None:
                 print(user_info)
                 # ставим лайк!!!
                 # try:
-                    # like_res = api.likes.add(type='photo', owner_id= user_info[1], item_id=user_info[8])
-                    # это типа псевдодекоратор
-                    # print(like_res, 'done like')
-                    # except vk.exceptions.VkAPIError as erro:
-                    # print('перехватили исключение при попытке лайкнуть. Здесь ничего не делаем пока')
-                    # print(erro)
-                    # todo реализовать логику обработки исключения
+                # like_res = api.likes.add(type='photo', owner_id= user_info[1], item_id=user_info[8])
+                # это типа псевдодекоратор
+                # print(like_res, 'done like')
+                # except vk.exceptions.VkAPIError as erro:
+                # print('перехватили исключение при попытке лайкнуть. Здесь ничего не делаем пока')
+                # print(erro)
+                # todo реализовать логику обработки исключения
                 # добавляем юзера в друзья
-                res = api.friends.add(user_id = user_info[1], text=message)
+                res = api.friends.add(user_id=user_info[1], text=message)
                 print(res)
                 if res == 1:
                     update_to_vk_group_user_friend_added(postgres_con, postgres_cur, user_info[0])
@@ -1385,7 +1418,8 @@ def add_bots_to_friends_of_each_other(postgres_con, postgres_cur, users_api, bot
             try:
                 res = users_api[bots_api_num][0].friends.add(
                     user_id=bots_senders[bots_num2].vk_user_id,
-                    text='добавляем в друзья'
+                    text='добавляем в друзья',
+                    v=api_vk_version
                 )
                 print(res)
                 if res == 1:
@@ -1402,7 +1436,7 @@ def add_bots_to_friends_of_each_other(postgres_con, postgres_cur, users_api, bot
                 if erro.message == 'Captcha needed':
                     # если параметр True,
                     # то функция становится генератором для приема данных от интерфейса с помощью send
-                    save_have_got_captcha(erro) # сохраняем каптчу в файл
+                    save_have_got_captcha(erro)  # сохраняем каптчу в файл
                     captcha_guessed = work_with_RuCaptcha()
                     captcha_sid = erro.error_data['captcha_sid'],
                     res = users_api[bots_api_num][0].friends.add(
@@ -1428,12 +1462,14 @@ def deco_create_photo_comment(create_photo_comment):
         try:
             create_photo_comment(*args)
         except vk.exceptions.VkAPIError as erro:
-            if erro.code ==7: # error_data - это словарь, где хранятся данные о вернувшейся ошибке api
+            if erro.code == 7:  # error_data - это словарь, где хранятся данные о вернувшейся ошибке api
                 print('access closed')
                 print(erro.message)
                 if erro.message == 'Permission to perform this action is denied: photo is deleted':
                     print(erro, 'обновляем инфо о фото в БД')
-                    update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
+                    update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1],
+                                                                      can_post_ava_comment=False)
+
     return wrapper
 
 
@@ -1454,16 +1490,12 @@ def create_photo_comment(
     """
     if captcha_sid is None and captcha_key is None:
         api.photos.createComment(
-            version='5.0', owner_id=owner_id, photo_id=photo_id, message=message, attachments=attachments
+            v=api_vk_version, owner_id=owner_id, photo_id=photo_id, message=message, attachments=attachments
         )
     else:
         api.photos.createComment(
-            version='5.0', owner_id=owner_id, photo_id=photo_id, message=message, attachments=attachments,
+            v=api_vk_version, owner_id=owner_id, photo_id=photo_id, message=message, attachments=attachments,
             captcha_sid=captcha_sid, captcha_key=captcha_key)
-
-
-user_text_for_privat = "Добрый день, {}! Сорри за спам :// Но нам будет приятно, если Вы послушаете и оцените немного нашей музыки)"
-
 
 def make_message_in_privat(user_name, user_text=None, is_multitext=False):
     # todo странная логика у функции. Подумать!!
@@ -1477,7 +1509,7 @@ def make_message_in_privat(user_name, user_text=None, is_multitext=False):
         random_text_index = random.randint(1, user_text.count())
         user_text = user_text.get(id=random_text_index).ava_message.format(user_name)
         print('Текст для отправки: ', user_text)
-        logger_for_communicator.info('Текст для отправки: {}'.format(user_text))
+        logger.info('Текст для отправки: {}'.format(user_text))
     elif user_text.find('{}') != -1:
         user_text = user_text.format(user_name)
 
@@ -1490,7 +1522,7 @@ def handling_captcha_exeption(erro):
     :param erro:
     :return:
     """
-    if erro.error_data['error_code'] == 7: # error_data - это словарь, где хранятся данные о вернувшейся ошибке api
+    if erro.error_data['error_code'] == 7:  # error_data - это словарь, где хранятся данные о вернувшейся ошибке api
         print('access closed')
         time.sleep(2)
     elif erro.error_data['error_code'] == 14:
@@ -1519,7 +1551,7 @@ def final_sending_privat_message(api, conn, cur, vk_group_id, offset=0, count_of
     tupl_members_inner = select_group_users_union_from_inner_db_FOR_UPDATE(postgres_con, postgres_cur, vk_group_id)
     texts_list = [
         'Здравствуйте, {}! Послушайте музыку молодой т перспективной группы)  \
-         ЕСЛИ ВАМ НЕ ИНТЕРЕСНО, ПРОСТО ПРОИГНОРИРУЙТЕ СООБЩЕНИЕ!' ,
+         ЕСЛИ ВАМ НЕ ИНТЕРЕСНО, ПРОСТО ПРОИГНОРИРУЙТЕ СООБЩЕНИЕ!',
         'День добрый, {}! Не судите строго молодую группу :/ ',
         'Добрый день, {}! Просьба понять, простить за спам и оценить нашу музыку) ',
         'Здравствуйте, {}! Не судите строго молодых музыкантов :// '
@@ -1565,7 +1597,8 @@ def final_sending_privat_message_with_multisender(
     postgres_con, postgres_cur = connection_to_postgres()
     # tupl_members_inner =  select_group_users_from_inner_db(postgres_con, postgres_cur)# our_users #
     # здесь мы используем версию функции для запроса с ЛОКЕРОМ (for update)
-    tupl_members_inner =  select_group_users_union_from_inner_db_FOR_UPDATE(postgres_con, postgres_cur, vk_group_id)# our_users in group#
+    # our_users in group#
+    tupl_members_inner = select_group_users_union_from_inner_db_FOR_UPDATE(postgres_con, postgres_cur, vk_group_id)
     max_index = len(text_list_for_multitext)
     offset = 0
     count = 0
@@ -1602,7 +1635,11 @@ def final_getting_subscribers(api, group_id, offset=0, insert_to_aim_group=False
     offset: показывает смещение стартовой позиции для выгрузки относительно нулевого пользователя
     """
     dict_res_members_of_group = api.groups.getMembers(
-        group_id=group_id, fields=['can_write_private_message', 'sex', 'bdate', 'city'], offset=offset, version=5.0)
+        group_id=group_id,
+        fields=['can_write_private_message', 'sex', 'bdate', 'city'],
+        offset=offset,
+        v=api_vk_version
+    )
     # print(dict_res_members_of_group)
 
     postgres_con, postgres_cur = connection_to_postgres()
@@ -1625,9 +1662,9 @@ def final_getting_subscribers_with_offsets_loop(api, group_id, end_digit=None, o
     нужна, потому что за раз можно дернуть только 1000 пользователей
     """
     # сначала нужно узнать, сколько подписчиков в группе
-    group_info = api.groups.getById(group_id=group_id, fields=['members_count'], version=5.0)
+    group_info = api.groups.getById(group_id=group_id, fields=['members_count'], v=api_vk_version)
     count_of_subscribers = group_info[0]['members_count']
-    end_digit = count_of_subscribers+1000
+    end_digit = count_of_subscribers + 1000
     if insert_to_aim_group:
         for inner_offset in range(0, end_digit, offset):
             res = final_getting_subscribers(api, group_id, offset=inner_offset, insert_to_aim_group=insert_to_aim_group)
@@ -1676,7 +1713,7 @@ def get_ava_id_and_insert_in_into_db(
         if user_info[8] is None:
             print(user_info[1])
             try:
-                res = api.users.get(user_ids=user_info[1], fields=['photo_id'], version=5.0)
+                res = api.users.get(user_ids=user_info[1], fields=['photo_id'], v=api_vk_version)
                 print(res)
                 if 'photo_id' in res[0].keys():
                     photo_id = res[0]['photo_id'].split('_')[1]
@@ -1684,7 +1721,8 @@ def get_ava_id_and_insert_in_into_db(
                     update_to_vk_group_user_union_ava_id(postgres_con, postgres_cur, photo_id, user_info[1])
                 else:
                     # если идентификатора фото нет, проставляем False в возможности комментить
-                    update_to_vk_group_user_union_can_comment_ava(postgres_con, postgres_cur, user_info[8], user_info[1], False)
+                    update_to_vk_group_user_union_can_comment_ava(postgres_con, postgres_cur, user_info[8],
+                                                                  user_info[1], False)
                     print('cant_comment_ava')
                 time.sleep(delay_between_gets)
             except requests.exceptions.ReadTimeout:
@@ -1723,14 +1761,17 @@ def get_settings_of_photo(
                     res = get_photo_params(api, user_info[1], user_info[8])
                     time.sleep(delay_between_gets)
                     if res[0]['can_comment'] == 1:
-                        update_to_vk_group_user_union_can_comment_ava(postgres_con, postgres_cur, user_info[8], user_info[1], True)
+                        update_to_vk_group_user_union_can_comment_ava(postgres_con, postgres_cur, user_info[8],
+                                                                      user_info[1], True)
                     else:
-                        update_to_vk_group_user_union_can_comment_ava(postgres_con, postgres_cur, user_info[8], user_info[1], False)
+                        update_to_vk_group_user_union_can_comment_ava(postgres_con, postgres_cur, user_info[8],
+                                                                      user_info[1], False)
                         print('фото комментить нельзя')
                 except vk.exceptions.VkAPIError as erro:
-                    if erro=='Access Denied':
+                    if erro == 'Access Denied':
                         print('исключение при попытке получить настройки фотографии')
-                        update_to_vk_group_user_union_can_comment_ava(postgres_con, postgres_cur, user_info[8], user_info[1], False)
+                        update_to_vk_group_user_union_can_comment_ava(postgres_con, postgres_cur, user_info[8],
+                                                                      user_info[1], False)
         except requests.ReadTimeout:
             print('не удалось выполнить http-запрос, пробуем снова')
             time.sleep(60)
@@ -1802,9 +1843,9 @@ def select_min_max_uncaptured_ava_params_gr_user_union(postgres_con, postgres_cu
 
 
 def select_gr_users_for_multiproc_getting_ava_params(
-    postgres_con, postgres_cur, group_id, min_id, max_id
+        postgres_con, postgres_cur, group_id, min_id, max_id
 ):
-        query = '''
+    query = '''
               SELECT * FROM vk_group_user_union_2
                   WHERE
                       vk_group_id='{}'
@@ -1813,28 +1854,27 @@ def select_gr_users_for_multiproc_getting_ava_params(
                       AND id>='{}'
                       AND id<'{}'
           '''.format(group_id, min_id, max_id)
-        print(query)
-        try:
-            postgres_cur.execute(query)
-            result = postgres_cur.fetchall()
-            # print(result)
-            # time.sleep(5)
-            # print(result)
-            if postgres_cur.statusmessage != 0:
-                return result  # str(postgres_cur.statusmessage)
-        except psycopg2.IntegrityError:
-            logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
+    print(query)
+    try:
+        postgres_cur.execute(query)
+        result = postgres_cur.fetchall()
+        # print(result)
+        # time.sleep(5)
+        # print(result)
+        if postgres_cur.statusmessage != 0:
+            return result  # str(postgres_cur.statusmessage)
+    except psycopg2.IntegrityError:
+        logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
 
 def select_gr_users_for_multiproc_getting_photo_ids(
-                postgres_con,
-                postgres_cur,
-                group_id,
-                min_id,
-                max_id
-        ):
-
-        query = '''
+        postgres_con,
+        postgres_cur,
+        group_id,
+        min_id,
+        max_id
+):
+    query = '''
               SELECT * FROM vk_group_user_union_2
                   WHERE
                       vk_group_id='{}'
@@ -1842,23 +1882,23 @@ def select_gr_users_for_multiproc_getting_photo_ids(
                       AND id>='{}'
                       AND id<'{}'
           '''.format(group_id, min_id, max_id)
-        print(query)
-        try:
-            postgres_cur.execute(query)
-            result = postgres_cur.fetchall()
-            # print(result)
-            # time.sleep(5)
-            # print(result)
-            if postgres_cur.statusmessage != 0:
-                return result  # str(postgres_cur.statusmessage)
-        except psycopg2.IntegrityError:
-            logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
+    print(query)
+    try:
+        postgres_cur.execute(query)
+        result = postgres_cur.fetchall()
+        # print(result)
+        # time.sleep(5)
+        # print(result)
+        if postgres_cur.statusmessage != 0:
+            return result  # str(postgres_cur.statusmessage)
+    except psycopg2.IntegrityError:
+        logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
 
 def multiproc_get_photo_params(
         users_apis,
         group_id,
-        is_run_from_interface = True,
+        is_run_from_interface=True,
         delay_between_posts=0.4
 ):
     """
@@ -1879,9 +1919,9 @@ def multiproc_get_photo_params(
     count_of_needed_process = len(users_apis)
     postgres_con, postgres_cur = connection_to_postgres()
     lis_of_users = []
-    allProcess = []
+    all_process = []
     min_id, max_id = select_min_max_uncaptured_photo_ids_gr_user_union(postgres_con, postgres_cur, group_id)
-    offset = (max_id-min_id)//count_of_needed_process
+    offset = (max_id - min_id) // count_of_needed_process
     print('смещение для генераторов: ', offset)
     '''
     def gen_starter(*args):
@@ -1899,7 +1939,7 @@ def multiproc_get_photo_params(
             logger_for_communicator.info('user: {}'. format(item))'''
 
     while min_id < max_id:
-        temporary_max = min_id+offset
+        temporary_max = min_id + offset
         lis_of_users.append(
             # todo тут исправить запрос??? надо ли?
             select_gr_users_for_multiproc_getting_photo_ids(
@@ -1938,9 +1978,9 @@ def multiproc_get_photo_params(
     # ошибка из за наличия подключения "внутри Джанго" (основное подключение для приложения
     # пока решил, согласно совету StackOverFlow импортированием подключений Джанго
     # и принудительным их отключением
-    # тесты показывают, что предположительно подключение поднимается заново при необходимости
+    # тесты показывают, что, предположительно, подключение поднимается заново при необходимости
     # при обращении их интерфейса
-    # (нуждается в доп. тестах!)webdriver.Chrome('/home/agrishaev/PycharmProjects/VKSpammer/WebDriver/chromedriver')
+    # (нуждается в доп. тестах!)webdriver.Chrome('/home/grishaev/PycharmProjects/VKSpammer/WebDriver/chromedriver')
 
     db.connections.close_all()
     for ind in range(0, count_of_needed_process):
@@ -1957,18 +1997,18 @@ def multiproc_get_photo_params(
             None,
             delay_between_posts,
             lis_of_users[ind]
-            )
         )
+                    )
         print('создали процесс!')
-        allProcess.append(p)
-    for p in allProcess:
+        all_process.append(p)
+    for p in all_process:
         p.start()
         print('запустили процесс!')
         time.sleep(3)
 
 
-def get_subscriber_settings_with_multisender_and_multiproc(api, postgres_con, postgres_cur, group_id, min_value, offset):
-
+def get_subscriber_settings_with_multisender_and_multiproc(api, postgres_con, postgres_cur, group_id, min_value,
+                                                           offset):
     result = get_ava_id_and_insert_in_into_db(api, postgres_con, postgres_cur, group_id, min_value, offset)
     if result == 'OK':
         return result
@@ -1977,7 +2017,8 @@ def get_subscriber_settings_with_multisender_and_multiproc(api, postgres_con, po
 
 
 def decorator_do_comment_photo(do_comment_photo):
-    def wrapper_do_comment_photo(api, postgres_con, postgres_cur, vk_group_id, consider_user_sex, is_run_from_interface):
+    def wrapper_do_comment_photo(api, postgres_con, postgres_cur, vk_group_id, consider_user_sex,
+                                 is_run_from_interface):
         if is_run_from_interface is True:
             generator_for_commenting = do_comment_photo(
                 api, postgres_con, postgres_cur, vk_group_id, consider_user_sex, is_run_from_interface
@@ -2003,11 +2044,11 @@ def decorator_do_comment_photo(do_comment_photo):
             do_comment_photo(
                 api, postgres_con, postgres_cur, vk_group_id, consider_user_sex
             )
+
     return wrapper_do_comment_photo
 
 
 def save_have_got_captcha(erro):
-
     captcha_have_got = requests.get(erro.error_data['captcha_img'])
     captcha_saved_image = Image.open(BytesIO(captcha_have_got.content))
     # print(captcha_have_got.content)
@@ -2049,7 +2090,7 @@ def multiproc_do_comment_photo(
     lis_of_users = []
     allProcess = []
     min_id, max_id = select_min_max_unhandled_id_gr_user_union(postgres_con, postgres_cur, group_id)
-    offset = (max_id-min_id)//count_of_needed_process
+    offset = (max_id - min_id) // count_of_needed_process
     print('смещение для генераторов: ', offset)
 
     def gen_starter(*args):
@@ -2064,12 +2105,12 @@ def multiproc_do_comment_photo(
         gen = do_comment_photo(*args)
         for item in gen:
             print(item)
-            logger_for_communicator.info('user: {}'. format(item))
+            logger.info('user: {}'.format(item))
         con.close()
         print("{}: работа генератора завершена, удалось закрыть подключение к БД".format(datetime.now()))
 
     while min_id < max_id:
-        temporary_max = min_id+offset
+        temporary_max = min_id + offset
         lis_of_users.append(
             select_gr_users_union_from_inner_db_for_multiproc(
                 postgres_con,
@@ -2081,7 +2122,7 @@ def multiproc_do_comment_photo(
         min_id += offset
     # return lis_of_users
     # print(lis_of_users)
-    gens_list= []
+    gens_list = []
     '''
     for ind in range(0, count_of_needed_process):
         print(lis_of_users[ind])
@@ -2130,8 +2171,8 @@ def multiproc_do_comment_photo(
             limit_count_of_message,
             bot_sender,
             lis_of_users[ind]
-            )
         )
+                    )
         allProcess.append(p)
     # for gen in gens_list:
     #    p = Process(target=gen_starter, args=gen)
@@ -2159,7 +2200,6 @@ def do_comment_photo(
         bot_sender=None,
         list_of_vk_users_to_send=None
 ):
-
     """
     комментирование аватарок
     :param api:
@@ -2191,22 +2231,34 @@ def do_comment_photo(
     else:
         tupl_members_inner = list_of_vk_users_to_send
 
+    # print('Got users to sending ava comment: ', tupl_members_inner)
     count = 0
     for user in tupl_members_inner:
         # метод для комментирования фоток
         # print(user)
+        if bot_sender:
+            if bot_sender.day_sent_message_count > limit_count_of_message:
+                print("Messages limit for sender reached, distribution is finished", bot_sender)
+                break
+                # todo ну капец ущербная логика. сделал так только из-за отсутствия времени
+        if count > limit_count_of_message:
+            # здесь прерываем цикл. В случае генератора, возбуждается исключение StopIteration
+            break
+
         if user[9] is True and user[5] is not True and user[6] is not True:
             print(user)
             # ставим лайк!!!
             try:
                 try:
-                    like_res = api.likes.add(type='photo', owner_id=user[1], item_id=user[8])  # псевдодекоратор
+                    like_res = api.likes.add(type='photo', owner_id=user[1], item_id=user[8],
+                                             v=api_vk_version)  # псевдодекоратор
                     print(like_res, 'done like')
-                    logger_for_communicator.info('done_like: {}'.format(like_res))
+                    logger.info('done_like: {}'.format(like_res))
                 except vk.exceptions.VkAPIError as erro:
+                    logging.warning("Исключение при попытке лайкнуть", erro)
                     if erro.is_captcha_needed() is True and erro.message == 'Captcha needed':
                         print('перехватили исключение при попытке лайкнуть.')
-                        save_have_got_captcha(erro) # сохраняем каптчу в файл
+                        save_have_got_captcha(erro)  # сохраняем каптчу в файл
                         captcha_guessed = work_with_RuCaptcha()
                         # webbrowser.open_new_tab(erro.error_data['captcha_img']) # открываем фото с капчей.
                         print(erro.error_data['captcha_img'])
@@ -2221,11 +2273,12 @@ def do_comment_photo(
                         try:
                             like_res = api.likes.add(
                                 type='photo',
-                                owner_id= user[1],
+                                owner_id=user[1],
                                 item_id=user[8],
                                 captcha_sid=erro.error_data['captcha_sid'],
                                 # captcha_key=captcha_inputed
-                                captcha_key=captcha_guessed
+                                captcha_key=captcha_guessed,
+                                v=api_vk_version
                             )
                             print(like_res, 'done like after captcha input')
                         except vk.exceptions.VkAPIError as erro:
@@ -2251,50 +2304,68 @@ def do_comment_photo(
                         )
 
                     elif user[10] == '2':
-                        message = make_message_in_privat(user[3], message_text, is_multitext) # вызываем вспомогательную функцию формирования текста
-                        create_photo_comment(api, owner_id=user[1], photo_id=user[8], message=message, attachments=attachments_for_photo_comment_for_man)
-
+                        # вызываем вспомогательную функцию формирования текста
+                        message = make_message_in_privat(user[3], message_text, is_multitext)
+                        create_photo_comment(
+                            api,
+                            owner_id=user[1],
+                            photo_id=user[8],
+                            message=message,
+                            attachments=attachments_for_photo_comment_for_man
+                        )
                 else:
-                    message = make_message_in_privat(user[3], message_text, is_multitext) # вызываем вспомогательную функцию формирования текста
-                    create_photo_comment(api, owner_id=user[1], photo_id=user[8], message=message, attachments=attachments_for_photo_comment_for_woman)
+                    # вызываем вспомогательную функцию формирования текста
+                    message = make_message_in_privat(user[3], message_text, is_multitext)
+                    create_photo_comment(
+                        api,
+                        owner_id=user[1],
+                        photo_id=user[8],
+                        message=message,
+                        attachments=attachments_for_photo_comment_for_woman
+                    )
 
-                update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1]) # пилять!!!
+                update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1])  # пилять!!!
                 print('POSTed SUCCESS!')
                 count += 1
                 if bot_sender:
                     bot_sender.day_sent_message_count += 1
                     bot_sender.save()
-                    if bot_sender.day_sent_message_count == limit_count_of_message:
-                        break
-                        # todo ну капец ущербная логика. сделал так только из-за отсутствия времени
-                if count == limit_count_of_message:
-                    # здесь прерываем цикл. В случае генератора, возбуждается исключение StopIteration
-                    # todo странная логика. проверку count нужно вынести в начало цикла
-                    break
 
             except vk.exceptions.VkAPIError as erro:
                 logging.info(erro)
+                print(erro)
+                print(erro.message)
                 # ветка обработки исключений на случай ошибочной капчи
                 if erro.code == 7:  # error_data - это словарь, где хранятся данные о вернувшейся ошибке api
                     print('access closed')
-                    print(erro.message)
                     if erro.message == 'Permission to perform this action is denied: photo is deleted':
                         print(erro, 'обновляем инфо о фото в БД')
-                        update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
+                        update_to_vk_photo_comment_state_group_user_union(
+                            postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
                         # todo делать запись в БД!!!!
                     elif erro.message == 'Permission to perform this action is denied: user is not allowed to comment':
                         print(erro, 'обновляем инфо о фото в БД')
-                        update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
+                        update_to_vk_photo_comment_state_group_user_union(
+                            postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
                     elif erro.message == 'Permission to perform this action is denied: photo access denied':
                         # todo проверить и если ДА - переписать на работу по ID(первичному ключу)
                         print(erro, 'updating photo info in database')
-                        update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
+                        update_to_vk_photo_comment_state_group_user_union(
+                            postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
+                    elif erro.message == 'Permission to perform this action is denied: wall or photo comment not added':
+                        print(erro, 'updating photo info in database')
+                        update_to_vk_photo_comment_state_group_user_union(
+                            postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
                     else:
-                        print(erro.message)
                         print("Нужно авторизоваться под другим пользователем. Работа скрипта будет завершена")
+                        time.sleep(600)
                         time.sleep(delay_between_posts)
                         # todo подумать над доработкой&&&
                         break
+                elif erro.error_data['error_code'] == 15:
+                    print('Updating photo info in database for vk_user_id: ', erro.request_params['owner_id'])
+                    update_to_vk_photo_comment_state_group_user_union(
+                        postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
                 elif erro.error_data['error_code'] == 14:
                     print(dir(erro))
                     print(erro.message)
@@ -2317,26 +2388,32 @@ def do_comment_photo(
                         try:
                             create_photo_comment(
                                 api, owner_id=user[1], photo_id=user[8], message=message,
-                                attachments=attachments_for_photo_comment_for_woman, captcha_sid=erro.error_data['captcha_sid'],
+                                attachments=attachments_for_photo_comment_for_woman,
+                                captcha_sid=erro.error_data['captcha_sid'],
                                 # captcha_key=captcha_inputed
                                 captcha_key=captcha_guessed)
                             print('Posted SUCCESSfully!')
-                            update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1]) #пилять!!!
+                            update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur,
+                                                                              user[1])  # пилять!!!
                             count += 1
                             if bot_sender:
-                                 bot_sender.day_sent_message_count += 1
-                                 bot_sender.save()
-                                 if bot_sender.day_sent_message_count == limit_count_of_message:
-                                    break
-                                # todo ну капец ущербная логика. сделал так только из-за отсутствия времени
-                            if count == limit_count_of_message:
-                                # здесь прерываем цикл. В случае генератора, возбуждается исключение StopIteration
-                                # todo странная логика. проверку count нужно вынести в начало цикла
-                                break
+                                bot_sender.day_sent_message_count += 1
+                                bot_sender.save()
+                            #     if bot_sender.day_sent_message_count == limit_count_of_message:
+                            #         break
+                            #     # todo ну капец ущербная логика. сделал так только из-за отсутствия времени
+                            # if count == limit_count_of_message:
+                            #     # здесь прерываем цикл. В случае генератора, возбуждается исключение StopIteration
+                            #     # todo странная логика. проверку count нужно вынести в начало цикла
+                            #     break
                             time.sleep(delay_between_posts)
                         except:
                             if erro.is_captcha_needed() is True and erro.message == 'Captcha needed':
                                 print("Неверно ввели каптчу")
+                            else:
+                                print(erro)
+                else:
+                    print("Не удалось обработать ошибку и завершить действие")
             time.sleep(delay_between_posts)
 
 
@@ -2345,7 +2422,7 @@ def get_important_params(access_token=None):
     # todo продумать получение токена из интерфейса при начале отправки
     if access_token:
         # токен получен из бд через представление
-        logger_for_communicator.info('{}: получаем api с пом токена из БД: {}'.format(datetime.now(), access_token))
+        logger.info('{}: получаем api с пом токена из БД: {}'.format(datetime.now(), access_token))
         api = get_api(access_token)
         postgres_con, postgres_cur = connection_to_postgres()
         return api, postgres_con, postgres_cur
@@ -2363,9 +2440,9 @@ def main_func():
     access_token, _ = get_saved_auth_params()
     if not access_token or not _:
         access_token, _ = get_auth_params()
-    api = get_api(access_token) # получение "экземпляра апи" по имеющемуся токену
+    api = get_api(access_token)  # получение "экземпляра апи" по имеющемуся токену
 
-    users = ['368514350'] # список с идентификаторами пользователей
+    users = ['368514350']  # список с идентификаторами пользователей
     user_text = "Добрый день, {}! Зацените нашу музыку, но не судите строго))) https://vk.com/gorkyvery"
     for user_id in users:
         # print("User ", user_id)
@@ -2387,9 +2464,9 @@ def main_func():
         # print(gid) от 6000 тыс до 7000 не сделал остановился на 15000!! начинать с 16000
         # функЦИЯ для получения подписчиков из VK! И ЗАПИСИ ИХ В БД. Дёргать ЕЁ!!
         # for offset in range(0,2000,1000):
-            # res = final_getting_subscribers(api, 'letobar61', offset=offset)
-            # time.sleep(0.5)
-            # rint(res)
+        # res = final_getting_subscribers(api, 'letobar61', offset=offset)
+        # time.sleep(0.5)
+        # rint(res)
         # print('done')
 
         '''
@@ -2398,7 +2475,6 @@ def main_func():
         tupl_member_of_group = make_insert_record_to_vk_group_user(res_of_members_of_group)
         make_insert_records_to_vk_group_user_union(postgres_con, postgres_cur, tupl_member_of_group)
         '''
-
 
     postgres_con, postgres_cur = connection_to_postgres()
     # tupl_members_inner = select_group_users_from_inner_db(postgres_con, postgres_cur
@@ -2427,7 +2503,7 @@ def main_func():
     # res_of_posting_to_wall = post_wall_message(api, group_id='iowa', message='Слушайте новую песню Горького ... https://vk.com/gorkyvery',attachments =attachments)
     # gen = many_posts_wall_message(api, postgres_con, postgres_cur, group_id='mtbarmoscow')
     # for i in gen:
-        # print(i)
+    # print(i)
     # res = api.database.getCountries()
 
     # res = dir(vk.AuthSession)

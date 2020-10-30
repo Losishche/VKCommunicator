@@ -15,7 +15,6 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
@@ -26,7 +25,6 @@ SECRET_KEY = 'q!wu#-$#twv6p%v+)%*i&!0wnmnoi+m-685of^%+aql4ya4u9q'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -40,12 +38,11 @@ INSTALLED_APPS = (
     'VKSpam_djg',
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -70,11 +67,10 @@ TEMPLATES = [
 ]
 
 TEMPLATE_DIRS = (
-    '/home/grishaev/PycharmProjects/VKSpammer/VKSpammer/VKSpam_djg/templates', # Change this to your own directory.
+    '/home/grishaev/PycharmProjects/VKSpammer/VKSpammer/VKSpam_djg/templates',  # Change this to your own directory.
 )
 
 WSGI_APPLICATION = 'VKSpammer.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
@@ -84,11 +80,14 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'VKSpammer',
         'USER': 'postgres',
+        'PASSWORD': 'continental',
         'HOST': '127.0.0.1',
         'PORT': '5432',
+        # 'OPTIONS': {
+        #    'sslmode': 'disable',
+        # },
     }
 }
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
@@ -103,12 +102,12 @@ USE_L10N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
+# Static files (CSS, JavaSуcript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
 STATIC_URL = '/static/'
+# для подгрузки собственных статикфайлов из кастомной папки НУЖНО задавать эту переменную и прописывать os.path.join
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "static"),
-    '/home/grishaev/PycharmProjects/VKSpammer/static/statics_for_communicator.css',
+    # '/home/grishaev/PycharmProjects/VKSpammer/static/statics_for_communicator.css',
 )

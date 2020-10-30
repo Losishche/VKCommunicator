@@ -1,10 +1,63 @@
-<!DOCTYPE html>
-<html>
-<head lang="en">
-    <meta charset="UTF-8">
-    <title></title>
-</head>
-<body>
+{% load static %}
 
-</body>
-</html>
+<link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
+{% include "VKSpam_djg/navigation.html" %}
+
+{% if get_updates_of_aim_group %}
+<div>
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:working_with_aim_group' %}" method="post">
+        {% csrf_token %}
+        <input type="submit" value="добавить новых пользователей группы" class="button button-green">
+    </form>
+
+</div>
+{% endif %}
+
+{% if status_for_getting_subscribers_of_aim_group %}
+    <div>
+        <p> {{ status_for_getting_subscribers_of_aim_group }} </p>
+    </div>
+{% endif %}
+
+
+{% if get_aim_group_wall_posts %}
+<div>
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:get_aim_group_wall_posts' %}" method="post">
+        {% csrf_token %}
+        <input type="submit" value="получить посты со стены группы" class="button button-green">
+    </form>
+
+</div>
+{% endif %}
+
+{% if status_for_get_aim_group_wall_posts %}
+    <div>
+        <p> {{ status_for_get_aim_group_wall_posts }} </p>
+    </div>
+{% endif %}
+
+
+
+<div>
+
+    <form enctype="multipart/form-data"
+          action="{% url 'VKSpam_djg:like_aim_group_wall_post_through_fake_browser' %}"
+          method="post">
+        {% csrf_token %}
+        {{ like_aim_group_posts_form.as_p }}
+        <input type="submit" value="пролайкать посты" class="button button-green">
+    </form>
+
+    <!--{% if like_aim_group_wall_post_through_fake_browser %}-->
+        <!--<ul>-->
+            <!--<h2> {{ status_for_start_of_privat_distr }} </h2>-->
+        <!--</ul>-->
+    <!--{% endif %}-->
+</div>
+
+
+{% if status_like_aim_group_wall_post_through_fake_browser %}
+    <div>
+        <p> {{ status_like_aim_group_wall_post_through_fake_browser }} </p>
+    </div>
+{% endif %}

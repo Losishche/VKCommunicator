@@ -5,7 +5,7 @@
     <title>Боты для отправки</title>
 </head>
 <body>
-{% load staticfiles %}
+{% load static %}
 <link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
 
 {% include "VKSpam_djg/navigation.html" %}
@@ -20,8 +20,36 @@
             <input type="submit" value="Собрать токены">
             </form>
         </div>
-    <table>
 
+    <div>
+        <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:add_bots_to_eachother_friends' %}" method="post">
+            {% csrf_token %}
+            {{ add_bots_in_each_other_friend_form }}
+            {{ add_bots_in_each_other_friend_form.finish_of_adding_bots_to_friends }}
+            <input type="hidden" name="add_bots_to_eachother_friend_btn" value="True">
+            <input type="submit" value="AddToFriedsEachOther">
+            </form>
+        </div>
+
+{% if bots_senders %}
+    <table>
+        <tr>
+            <th>
+                Фамилия
+            </th>
+            <th>
+                Логин ВК
+            </th>
+            <th>
+                Пароль ВК
+            </th>
+            <th>
+                Заблокирован ли ?
+            </th>
+            <th>
+                Авторизоваться!
+            </th>
+        </tr>
 {% for bot in bots_senders %}
         <tr>
         <td> {{bot.surname}} </td>
@@ -39,6 +67,7 @@
          </tr>
     {% endfor %}
     </table>
+{%endif%}
     </ul>
 </body>
 </html>

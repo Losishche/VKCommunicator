@@ -6,17 +6,16 @@
 
     </head>
 
-{% load staticfiles %}
+{% load static %}
 <link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
 
 
 {% include "VKSpam_djg/navigation.html" %}   <!-- так включаем другой шаблон в этот шаблон-->
-
-    <div>
+<div>
     <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:distr_to_walls' %}" method="post">
         {% csrf_token %}
      {{ do_wall_post_form.as_p }}
-        <input type="submit" value="начать постинг " />
+        <input type="submit" value="начать постинг" />
 
         {% if status_for_start_of_wall_post  %}
             <ul>

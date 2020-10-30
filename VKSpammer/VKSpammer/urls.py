@@ -13,23 +13,23 @@ Including another URLconf
     1. Add an import:  from blog import urls as blog_urls
     2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
-from django.conf.urls import patterns, include, url
+from django.conf.urls import  include, url
 from django.contrib import admin
 admin.autodiscover()
 
-urlpatterns = [
-    url(r'^admin/', include(admin.site.urls)),
-]
+# urlpatterns = [
+#     url(r'^admin/', include(admin.site.urls)),
+# ]
 
 #и тут почему-то. Блин, непонятно
-urlpatterns = patterns('',
-
+urlpatterns = [#'',
+    # here we are not using pattern module like in previous django versions# here we are not using pattern module like in previous django versions
     #Значок доллара в конце не нужен, тк ЭТО КОНЕЦ СТРОКИ!!
-    url(r'^VKCommunicator/', include('VKSpam_djg.urls', namespace="VKSpam_djg")),
+    url(r'^VKCommunicator/', include('VKSpam_djg.urls', namespace='VKSpam_djg')),
     #url(r'^VKCommunicator/$', include('VKSpammer.urls', namespace="VKSpammer")),
     #url(r'^VKCommunicator/statistics/$', 'VKSpam_djg.views.statistics'),
     #url(r'^VKCommunicator/(?P<vk_group_id>\d+)/$', 'VKSpam_djg.views.detail'),
     #url(r'^VKCommunicator/(?P<vk_group_id>\d+)/results/$', 'VKCommunicator.views.results'),
     #url(r'^VKCommunicator/(?P<vk_group_id>\d+)/vote/$', 'VKCommunicator.views.vote'),
-    url(r'^admin/', include(admin.site.urls)),
-)
+    url(r'^admin/', admin.site.urls),
+]

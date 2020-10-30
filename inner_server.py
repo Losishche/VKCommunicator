@@ -8,15 +8,13 @@ import socket
 from app_info import do_comment_photo, many_posts_wall_message
 from app_info import get_important_params
 from multiprocessing import Process, Queue
-import io,sys
-import time
 
 
-class InnerServer():
+class InnerServer:
     pass
 
 
-class flushfile(object):
+class Flushfile(object):
     def __init__(self, f):
         self.f = f
 
@@ -25,11 +23,11 @@ class flushfile(object):
         self.f.flush()
 
 
-class InnerServerConnections():
+class InnerServerConnections:
     # todo оформить классы соединений и сокетов через наследование!!!
     def __init__(self, port):
 
-        self.port =port
+        self.port = port
         self.sock = socket.socket()
         self.sock.bind(('', self.port))
         self.sock.listen(2)  # параметр - допустимое количество клиентов в очереди
@@ -38,8 +36,8 @@ class InnerServerConnections():
     # архитектура КАПеЦ, но зато поупражнялся с классами
     def accept_and_handling_client_for_photo_comment(self):
 
-        self.conn, self.addr = self.sock.accept() #блокирует, сволочь, приложение
-        #sys.stdout = flushfile(sys.stdout) #перенаправляем вывод в файл!!!!
+        self.conn, self.addr = self.sock.accept() #б локирует, сволочь, приложение
+        # sys.stdout = flushfile(sys.stdout) #перенаправляем вывод в файл!!!!
         print('accepting ', self.port)
         self.data = self.conn.recv(1024)
         self.data = self.data.decode('utf8')
@@ -102,22 +100,20 @@ class InnerServerConnections():
                 self.conn.send(b'end')
                 self.conn, self.addr = self.restart_accepting_conn('photo')
 
-
     def accept_and_handling_client_for_wall_comment(self):
 
-        self.conn, self.addr = self.sock.accept() # блокирует, сволочь, приложение
+        self.conn, self.addr = self.sock.accept()  # блокирует, сволочь, приложение
         print('accepting ', self.port)
         self.data = self.conn.recv(1024)
         self.data=self.data.decode('utf8')
         print('for_wall', self.data)
 
         while True:
-
             try:
-                if self.data=='start_posting_wall_comments':
+                if self.data == 'start_posting_wall_comments':
                     self.conn.send(b'start_posting_wall_comments_resp')
                     self.data = self.conn.recv(1024)
-                    self.data=self.data.decode('utf8')
+                    self.data = self.data.decode('utf8')
                     arg_list = self.data.split(',')
                     vk_group_id = arg_list[0]
                     print('args:', arg_list)
@@ -133,8 +129,7 @@ class InnerServerConnections():
                             self.conn.send(b'handling_exception')
                             self.conn, self.addr = self.restart_accepting_conn('wall')
 
-
-                elif self.data=='catch_exception':
+                elif self.data == 'catch_exception':
                     print(self.data)
                     self.conn.send(b'handling_exception')
                     inputed_captcha = self.conn.recv(1024)
@@ -156,49 +151,47 @@ class InnerServerConnections():
                 else:
                     self.conn.send(b'unknown_parameter')
                     self.conn, self.addr = self.restart_accepting_conn('wall')
-                #except vk.exceptions.VkAPIError:
-                    #print('captcha exception again')
-                    #conn.send(b'end_of_sending')
-                    #conn, addr = restart_accepting_conn(conn, sock)
-                #except StopIteration:
-                    #conn.send(b'end_of_sending')
-                    #print('Stop_iteration')
-                    #conn, addr = restart_accepting_conn(conn, sock)
+                # except vk.exceptions.VkAPIError:
+                    # print('captcha exception again')
+                    # conn.send(b'end_of_sending')
+                    # conn, addr = restart_accepting_conn(conn, sock)
+                # except StopIteration:
+                    # conn.send(b'end_of_sending')
+                    # print('Stop_iteration')
+                    # conn, addr = restart_accepting_conn(conn, sock)
             except StopIteration:
                 print('цикл отсылки завершился')
                 self.conn.send(b'end_wall_posting')
                 self.conn, self.addr = self.restart_accepting_conn('wall')
 
-
     def restart_accepting_conn(self, kind_of_connection):
-        if kind_of_connection=='photo':
+        if kind_of_connection == 'photo':
             self.conn.close()
             self.accept_and_handling_client_for_photo_comment()
-        elif kind_of_connection=='wall':
+        elif kind_of_connection == 'wall':
             self.conn.close()
             self.accept_and_handling_client_for_wall_comment()
-        #self.conn, self.addr = self.sock.accept()
-        #return self.conn, self.addr
+        # self.conn, self.addr = self.sock.accept()
+        # return self.conn, self.addr
 
 
+def running_server(queue_inner, port, kind_of_socket):
+    # здесь первым параметром обзательно должен быть queue (только не ясно зачем)
+    instance = InnerServerConnections(port)
+    if kind_of_socket == 'photo':
+        print('поднимаем сокет для photo')
+        instance.accept_and_handling_client_for_photo_comment()
 
-def running_server(queue, port, kind_of_socket):
-#здесь первым параметром обзательно должен быть queue
-   instance =  InnerServerConnections(port)
-   if kind_of_socket=='photo':
-       print('поднимаем сокет для photo')
-       instance.accept_and_handling_client_for_photo_comment()
+    elif kind_of_socket == 'wall':
+        print('поднимаем сокет для wall')
+        instance.accept_and_handling_client_for_wall_comment()
 
-   elif kind_of_socket=='wall':
-       print('поднимаем сокет для wall')
-       instance.accept_and_handling_client_for_wall_comment()
-
-   return instance
-
+    return instance
 
 
 queue = Queue()
 allProcess = []
+
 
 def sockets_with_multiproc(count=2):
     """
@@ -206,22 +199,22 @@ def sockets_with_multiproc(count=2):
     count_of_sockets = 0
     port = 9091
     target = ''
-    kind_of_socket= ['photo', 'wall']
+    kind_of_socket = ['photo', 'wall']
     while count_of_sockets < count:
-        #идем по списку портов начиная с заданного, если порт свободен, инициализируем сокет по данному адресу и порту
+        # идем по списку портов начиная с заданного, если порт свободен, инициализируем сокет по данному адресу и порту
         # в случае успеха, на следующей итерации начнётся проверка с того, который был инициализирован на прошлой итерации
-        targetIP = socket.gethostbyname(target)
+        target_IP = socket.gethostbyname(target)
         result = False
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         while not result:
-            result = s.connect_ex((targetIP, port))
+            result = s.connect_ex((target_IP, port))
             print('Port {} is already open'.format(port))
             port += 1
 
         print('established_port: {}'.format(port))
         print(s.close())
-        p = Process(target = running_server, args=(queue, port, kind_of_socket[count_of_sockets]))
+        p = Process(target=running_server, args=(queue, port, kind_of_socket[count_of_sockets]))
         allProcess.append(p)
         count_of_sockets += 1
         print('создали процесс для сокета!')

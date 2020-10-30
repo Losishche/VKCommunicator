@@ -15,7 +15,7 @@
     </head>
 
 
-{% load staticfiles %}
+{% load static %}
 <link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
 
 
@@ -42,6 +42,47 @@
     </form>
 
         {% include "captcha_input_form.html" %}
+
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:distr_to_avas' %}" method="post">
+        {% csrf_token %}
+        <p> Рассылка по аватаркам в режиме "мультисендер" всегда осуществляется с активированными параметрами "автокапча" и
+            "мультитекст". В дальнейшем нужно реализовать только возможность выбора рассылки с учётом пола
+            (сейчас также всегда ПАССИВНО!)" </p>
+        {{ do_comment_photo_multisender_form.as_p }}
+        <input type="submit" value="начать отправку в режиме мультисендер" />
+        {% if status_for_start_of_multisender_posting_ava_comment %}
+            <ul>
+                <h2> {{status_for_start_of_multisender_posting_ava_comment }} </h2>
+                </ul>
+                {% endif %}
+                   {% if status_for_finish_of_multisender_posting_ava_comment %}
+            <ul>
+                <h2> {{status_for_finish_of_multisender_posting_ava_comment}} </h2>
+                </ul>
+        {% endif %}
+    </form>
+</div>
+<div>
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:distr_to_avas' %}" method="post">
+        {% csrf_token %}
+        <p> Рассылка по аватаркам в режиме "мультисендер" и "МУЛЬТИПРОЦЕССИНГ" (более быстрый режим)
+            всегда осуществляется с активированными параметрами "автокапча" и
+            "мультитекст". В дальнейшем нужно реализовать только возможность выбора рассылки с учётом пола
+            (сейчас также всегда ПАССИВНО!)" </p>
+        {{ do_comment_photo_mustiproc_multisend_form.as_p }}
+        <input type="submit" value="отправить мультипроцессором" />
+        {% if status_for_start_of_mpost_msend_posting_ava_comment %}
+            <ul>
+                <h2> {{status_for_start_of_mpost_msend_posting_ava_comment }} </h2>
+                </ul>
+                {% endif %}
+                   {% if status_for_finish_of_mpost_msend_posting_ava_comment %}
+            <ul>
+                <h2> {{status_for_finish_of_mpost_msend_posting_ava_comment}} </h2>
+                </ul>
+        {% endif %}
+    </form>
+
 </div>
 
 
@@ -95,7 +136,7 @@ document.write(Date());
 
 
 
-<progress id="progressBar" value="25" max="100"></progress>
+<progress id="progressBar" value=al max="100"></progress>
     <span id="status"></span>
     <h1 id="finalMessage"></h1>
 
@@ -222,7 +263,6 @@ function unLoadDoc() {
                  });
     var amountLoaded = 0;
 document.getElementById("changing_element1").innerHTML = "New text!";
-
 
 
 </script>

@@ -1,0 +1,4 @@
+
+
+class TooFarLastAutorisationException(Exception):
+    pass

@@ -5,7 +5,7 @@
     <title>Рассылка в личку</title>
 </head>
 
-{% load staticfiles %}
+{% load static %}
 <link rel="stylesheet" type="text/css" href="{% static 'VKSpam_djg/style.css' %}" />
 
 {% include "VKSpam_djg/navigation.html" %}
@@ -34,5 +34,67 @@
         <p> Отправка в личку в режиме "mультисендер" </p>
         {{ do_privat_multisender_sending_mess_form.as_p }}
             <input type="submit" value="начать отправку">
+    </form>
+</div>
+
+<div>
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:make_distribution_to_friends_private' %}" method="post">
+        {% csrf_token %}
+     {{ send_messages_to_friends_private_form.as_p }}
+        <input type="submit" value="начать отправку сообщений в личку друзьям " />
+
+        {% if status_for_start_of_privat_distr  %}
+            <ul>
+                <h2> {{ status_for_start_of_privat_distr }} </h2>
+                </ul>
+        {% endif %}
+
+        {% if  status_for_finish_of_privat_distr %}
+            <ul>
+                <h2> {{ status_for_finish_of_privat_distr }} </h2>
+                </ul>
+        {% endif %}
+    </form>
+</div>
+
+<p> Invite-Рассылка в личку пользователям "целевой" группы (Горький) </p>
+<div>
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:make_distribution_to_aim_group_users' %}" method="post">
+        {% csrf_token %}
+     {{ send_messages_to_aim_group_user_form.as_p }}
+        <input type="submit" value="начать отправку сообщений в личку пользователям Горького" />
+
+        {% if status_for_start_of_privat_distr  %}
+            <ul>
+                <h2> {{ status_for_start_of_privat_distr }} </h2>
+                </ul>
+        {% endif %}
+
+        {% if  status_for_finish_of_privat_distr %}
+            <ul>
+                <h2> {{ status_for_finish_of_privat_distr }} </h2>
+                </ul>
+        {% endif %}
+    </form>
+</div>
+
+<p> Invite-Рассылка в личку посредством имитации работы в браузере </p>
+<div>
+    <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:make_distribution_in_privat_through_fake_browser' %}" method="post">
+        {% csrf_token %}
+     {{ make_distribution_through_fake_browser_form.as_p }}
+        <input type="submit" value="начать отправку сообщений в личку посредством фейкового браузера" />
+
+        {% if status_for_start_of_privat_distr  %}
+            <ul>
+                <h2> {{ status_for_start_of_privat_distr }} </h2>
+                </ul>
+        {% endif %}
+
+        {% if  status_for_finish_of_privat_distr %}
+            <ul>
+                <h2> {{ status_for_finish_of_privat_distr }} </h2>
+                </ul>
+        {% endif %}
     </form>
 </div>
