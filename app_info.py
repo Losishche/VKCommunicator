@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 import requests
-# import HTMLParser
+import json
 from urllib.parse import parse_qs
 import webbrowser
 from selenium import webdriver
@@ -200,6 +200,12 @@ def make_insert_records_to_vk_group_user_union(postgres_con, postgres_cur, tupl_
 
         temp_list.append(member)
     # print(temp_list)
+    # вконтакт поменял формат поля city, пришлось сделать костыль
+    for user_index in range(0, len(temp_list)):
+        if(len(str(temp_list[user_index]['city']))) <= 30:
+            temp_list[user_index]['city'] = str(temp_list[user_index]['city'])
+        else:
+            temp_list[user_index]['city'] = str(temp_list[user_index]['city']['id'])
     tupl_member_of_group = tuple(temp_list)
 
     # можно охренеть, но в типах данных ТУТ именно ДОЛЖНЫ быть строки, независимо от фактического типа!
@@ -1646,7 +1652,8 @@ def final_getting_subscribers(api, group_id, offset=0, insert_to_aim_group=False
 
     # tupl_member_of_group = make_tuple_for_insert_record_to_vk_group_user(dict_res_members_of_group)
     # формирование строки инсерта
-    tupl_member_of_group = tuple(dict_res_members_of_group['users'])
+    # в предыдущих версиях vk api ключ с пользователями был 'users'
+    tupl_member_of_group = tuple(dict_res_members_of_group['items'])
     if insert_to_aim_group:
         insert_res = make_insert_records_to_aim_group(postgres_con, postgres_cur, tupl_member_of_group)
     else:

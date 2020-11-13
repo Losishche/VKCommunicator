@@ -48,9 +48,9 @@ urlpatterns = [
     url(r'working_with_aim_group/$', views.working_with_aim_group, name='working_with_aim_group'),
     url(r'get_aim_group_wall_posts/$', views.get_aim_group_wall_posts, name='get_aim_group_wall_posts'),
     url(r'add_bots_to_eachother_friends/$', views.add_bots_to_eachother_friends, name='add_bots_to_eachother_friends'),
-    # url(r'like_aim_group_wall_post_through_fake_browser/$',
-    #     views.like_aim_group_wall_post_through_fake_browser,
-    #     name='like_aim_group_wall_post_through_fake_browser')
+    url(r'like_aim_group_wall_post_through_fake_browser/$',
+        views.like_aim_group_wall_post_through_fake_browser,
+        name='like_aim_group_wall_post_through_fake_browser')
 
 ]
 

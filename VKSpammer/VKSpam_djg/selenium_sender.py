@@ -18,7 +18,7 @@ class SeleniumSender:
     chromeDriverPath = '/home/grishaev/PycharmProjects/VKSpammer/WebDriver/chromedriver'
 
     def __init__(self, bot):
-        self.chrome_browser = webdriver.Chrome(chromeDriverPath)
+        self.chrome_browser = webdriver.Chrome(self.chromeDriverPath)
         self.login = bot.vk_login
         self.password = bot.vk_password
         self.chrome_browser.get('https://vk.com/login')
