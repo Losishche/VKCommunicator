@@ -50,7 +50,9 @@ urlpatterns = [
     url(r'add_bots_to_eachother_friends/$', views.add_bots_to_eachother_friends, name='add_bots_to_eachother_friends'),
     url(r'like_aim_group_wall_post_through_fake_browser/$',
         views.like_aim_group_wall_post_through_fake_browser,
-        name='like_aim_group_wall_post_through_fake_browser')
-
+        name='like_aim_group_wall_post_through_fake_browser'),
+    url(r'get_notifications_for_sender_and_sent_to_telegram/$',
+        views.get_notifications_for_sender_bots_and_sent_to_telegram,
+        name='get_sender_bots_notifications_and_sent_to_telegram')
 ]
 

@@ -18,8 +18,8 @@
             {{ get_set_of_tokens_form.finish_of_getting_tokens}}
             <input type="hidden" name="ask_set_of_token_btn" value="True">
             <input type="submit" value="Собрать токены">
-            </form>
-        </div>
+        </form>
+    </div>
 
     <div>
         <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:add_bots_to_eachother_friends' %}" method="post">
@@ -28,14 +28,26 @@
             {{ add_bots_in_each_other_friend_form.finish_of_adding_bots_to_friends }}
             <input type="hidden" name="add_bots_to_eachother_friend_btn" value="True">
             <input type="submit" value="AddToFriedsEachOther">
+        </form>
+    </div>
+    <div>
+        <form enctype="multipart/form-data"
+              action="{% url 'VKSpam_djg:get_sender_bots_notifications_and_sent_to_telegram' %}" method="post">
+            {% csrf_token %}
+            {{ get_bots_notifications_form }}
+            <input type="hidden" name="get_notifications_btn" value="True">
+            <input type="submit" value="GetBotsNotifications">
             </form>
-        </div>
+    </div>
 
 {% if bots_senders %}
     <table>
         <tr>
             <th>
                 Фамилия
+            </th>
+            <th>
+                Имя
             </th>
             <th>
                 Логин ВК
@@ -51,21 +63,22 @@
             </th>
         </tr>
 {% for bot in bots_senders %}
-        <tr>
+    <tr>
         <td> {{bot.surname}} </td>
+        <td> {{bot.name}} </td>
         <td> {{bot.vk_login}} </td>
         <td> {{bot.vk_password}} </td>
-            <td> {{bot.is_blocked }}</td>
-            <td>
-                <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:bots_senders' %}" method="post" class="autorise">
-                {% csrf_token %}
-                {{autorisation_form}}
-                <input type="hidden" name="autorisation" value={{bot.id}}>
-                <input type="submit" value="авторизоваться">
-                </form>
-            </td>
-         </tr>
-    {% endfor %}
+        <td> {{bot.is_blocked }}</td>
+        <td>
+            <form enctype="multipart/form-data" action="{% url 'VKSpam_djg:bots_senders' %}" method="post" class="autorise">
+            {% csrf_token %}
+            {{autorisation_form}}
+            <input type="hidden" name="autorisation" value={{bot.id}}>
+            <input type="submit" value="авторизоваться">
+            </form>
+        </td>
+    </tr>
+{% endfor %}
     </table>
 {%endif%}
     </ul>

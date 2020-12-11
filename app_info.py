@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 import requests
-import json
 from urllib.parse import parse_qs
 import webbrowser
 from selenium import webdriver
@@ -25,8 +24,13 @@ from django import db
 # -*- coding: utf-8 -*-
 
 # версия api вКонтакте
-api_vk_version = 5.21
-
+vk_api_version = 5.21
+day_ava_message_limit = 25
+# шаблон адреса для получения прав действий для приложений ВК
+url_for_token_template = "https://oauth.vk.com/authorize?client_id={app_id}" \
+                         "&scope=wall,audio,photos,groups,friends,notifications" \
+                         "&redirect_uri=http://oauth.vk.com/blank.html" \
+                         "&display=page&response_type=token"
 # нумерация приложений идёт в обратном порядке
 app_id_1 = 5556034  # идентификатор приложения
 app_name_1 = 'CommonApp'
@@ -36,11 +40,18 @@ app_id_2 = 5813739
 app_name_2 = 'CommonAppTest1'
 protected_key_3 = 'WfQQUqkFU5JYj7UbmMfB'
 
-app_id = 5786026
+# id of vk.com application
+APP_ID = 5786026
 protected_key = 'jS8ah0U0wlHiw5h252ZJ'
+# file, where auth data is saved
+AUTH_FILE = '.auth_data'
+AUTH_FILE_2 = '../.auth_data'
+# костылик для сохранения файла в разных местах.
+# todo исправить работу view-функциий в DJANGo на работу с оригинальным файлом
 
-proccess_log_file_path = \
-    '/home/grishaev/PycharmProjects/VKSpammer/VKSpammer/VKSpam_djg/static/VKSpam_djg/process_log.txt'
+# chars to exclude from filename
+FORBIDDEN_CHARS = '/\\\?%*:|"<>!'
+proccess_log_file_path = '/home/grishaev/PycharmProjects/VKSpammer/VKSpammer/VKSpam_djg/process_log.txt'
 chromeDriverPath = '/home/grishaev/PycharmProjects/VKSpammer/WebDriver/chromedriver'
 logger = logging.getLogger('logger_for_communicator')
 logger.setLevel(logging.INFO)
@@ -765,18 +776,6 @@ def get_saved_auth_params_from_db_bots(user_id, filename='.db_vk_bots'):
     return access_token, user_id
 
 
-# id of vk.com application
-APP_ID = app_id
-# file, where auth data is saved
-AUTH_FILE = '.auth_data'
-AUTH_FILE_2 = '../.auth_data'
-# костылик для сохранения файла в разных местах.
-# todo исправить работу view-функциий в DJANGo на работу с оригинальным файлом
-
-# chars to exclude from filename
-FORBIDDEN_CHARS = '/\\\?%*:|"<>!'
-
-
 def get_saved_auth_params():
     """
     получение сохранённых настроек аутентификации (токен и т.д.)
@@ -814,29 +813,25 @@ def save_multiple_auth_params_in_like_dict(access_token, expires_in, user_id):
         shelve.dump[user_id] = (access_token, expires_in)
 
 
-def get_auth_params(flag=False, vk_app_list=None):
+def get_auth_params(save_to_db=False, vk_app_list=None):
     """
-    получение токена с сайта
+    получение токена VK
     """
     if vk_app_list:
         # если передан список id приложений, выбираем приложение рандомно
         app_id = vk_app_list[random.randint(0, len(vk_app_list) - 1)]
-        auth_url = ("https://oauth.vk.com/authorize?client_id={app_id}"
-                    "&scope=wall,messages,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"  # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
-                    "&display=page&response_type=token".format(app_id=app_id))
+        # В СТРОКЕ СО scope ЗАПРОС  НА ПРАВА ДОСТУПА К КОНТЕНТУ
+        url_for_token = url_for_token_template.format(app_id=app_id)
     else:
-        auth_url = ("https://oauth.vk.com/authorize?client_id={app_id}"
-                    "&scope=wall,messages,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"  # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
-                    "&display=page&response_type=token".format(app_id=APP_ID)
-                    )  # APP_ID - глобальная переменная с id приложения
-    webbrowser.open_new_tab(auth_url)
+        url_for_token = url_for_token_template.format(app_id=APP_ID)  # APP_ID - глобальная переменная с id приложения
+    webbrowser.open_new_tab(url_for_token)
     redirected_url = input("Paste here url you were redirected:\n")
     aup = parse_qs(redirected_url)
     aup['access_token'] = aup.pop('https://oauth.vk.com/blank.html#access_token')
 
-    if flag is False:
+    if not save_to_db:
         save_auth_params(aup['access_token'][0], aup['expires_in'][0], aup['user_id'][0])
-    elif flag is True:
+    else:
         save_db_vk_bots(aup['access_token'][0], aup['expires_in'][0], aup['user_id'][0])
     return aup['access_token'][0], aup['user_id'][0]
 
@@ -845,21 +840,14 @@ def get_auth_params_from_interface(vk_app_id=None):
     if vk_app_id:
         # если передан список id приложений, выбираем приложение рандомно
         app_id = vk_app_id
-        print('идентификатор выпавшего приложения', app_id)
+        print(datetime.now(), ' - идентификатор выпавшего приложения', app_id)
+        logger.info("{} - получаем токен для приложения: {}".format(datetime.now(), app_id))
         # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
         # ВКОНТАКТ ВЫПИЛИЛ ПРАВО НА получение токена для messages ! поэтому его здесь нет!
-        url_for_token = (
-            "https://oauth.vk.com/authorize?client_id={app_id}"
-            "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"
-            "&display=page&response_type=token".format(app_id=app_id)
-        )
+        url_for_token = url_for_token_template.format(app_id=app_id)
     else:
         # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
-        url_for_token = (
-            "https://oauth.vk.com/authorize?client_id={app_id}"
-            "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"
-            "&display=page&response_type=token".format(app_id=APP_ID)
-        )
+        url_for_token = url_for_token_template.format(app_id=APP_ID)
     webbrowser.open_new_tab(url_for_token)
 
 
@@ -875,13 +863,13 @@ def get_token_by_inner_driver(login, password, auth_url='https://vk.com/login', 
         # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
         # ВКОНТАКТ ВЫПИЛИЛ ПРАВО НА получение токена для messages ! поэтому его здесь нет!
         url_for_token = ("https://oauth.vk.com/authorize?client_id={app_id}"
-                         "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"
+                         "&scope=wall,audio,photos,groups,friends,notifications&redirect_uri=http://oauth.vk.com/blank.html"
                          "&display=page&response_type=token".format(app_id=app_id)
                          )
     else:
         # В ЭТОЙ СТРОКЕ ЗАПРОС НА ПРАВА ДОСТУПА К КОНТЕНТУ (scope)!!!
         url_for_token = ("https://oauth.vk.com/authorize?client_id={app_id}"
-                         "&scope=wall,audio,photos,groups, friends&redirect_uri=http://oauth.vk.com/blank.html"
+                         "&scope=wall,audio,photos,groups,friends,notifications&redirect_uri=http://oauth.vk.com/blank.html"
                          "&display=page&response_type=token".format(app_id=APP_ID)
                          )
     chrome_browser.get(auth_url)
@@ -967,30 +955,30 @@ def autentification_in_vk_via_web_dr(login, password, auth_url='https://vk.com/l
     return 'OK'
 
 
-def autentification_vk(app_id, protected_key, username, password):
-    """
-    первая часть функции - тоже самое получение токена!!! НО неограниченного по времени!
-    :param app_id:
-    :param protected_key:
-    :param username:
-    :param password:
-    :return:
-    """
-    url = 'https://oauth.vk.com/token'
-    params = {
-        "grant_type": "password",
-        "client_id": app_id,
-        "client_secret": protected_key,
-        "username": username,
-        "password": password
-    }
-    headers = {'user-agent': 'my-app/0.0.1'}
-    r = requests.get(url, headers=headers)
-
-    opener = urllib2.build_opener(
-        urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
-        urllib2.HTTPRedirectHandler())
-    print('ress', r.text)
+# def autentification_vk(app_id, protected_key, username, password):
+#     """
+#     первая часть функции - тоже самое получение токена!!! НО неограниченного по времени!
+#     :param app_id:
+#     :param protected_key:
+#     :param username:
+#     :param password:
+#     :return:
+#     """
+#     url = 'https://oauth.vk.com/token'
+#     params = {
+#         "grant_type": "password",
+#         "client_id": app_id,
+#         "client_secret": protected_key,
+#         "username": username,
+#         "password": password
+#     }
+#     headers = {'user-agent': 'my-app/0.0.1'}
+#     r = requests.get(url, headers=headers)
+#
+#     opener = urllib2.build_opener(
+#         urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
+#         urllib2.HTTPRedirectHandler())
+#     print('ress', r.text)
 
 
 def get_api(access_token):
@@ -998,7 +986,7 @@ def get_api(access_token):
     return vk.API(session)
 
 
-def work_with_RuCaptcha() -> object:
+def work_with_ru_captcha() -> object:
     """
     :rtype : str
     """
@@ -1030,7 +1018,7 @@ def work_with_RuCaptcha() -> object:
             pause_between_requests += step_for_increasing_pause
             time.sleep(pause_between_requests)
         elif res_captcha.text[:2] == 'OK':
-            print('разгаданная каптча', res_captcha.text)
+            print(str(datetime.now()), ' - разгаданная каптча: ', res_captcha.text)
             status = True
             # time.sleep(20)
             return res_captcha.text[3:]
@@ -1079,7 +1067,7 @@ def get_user_info(api, nick_or_id):
     :param nick_or_id:
     :return:
     """
-    res = api.users.get(user_ids=nick_or_id, v=api_vk_version)
+    res = api.users.get(user_ids=nick_or_id, v=vk_api_version)
     return res
 
 
@@ -1099,7 +1087,7 @@ def get_photo_params(api, vk_user_id, photo_id):
     photos = []
     str_user_id_photo_id = '{}_{}'.format(vk_user_id, photo_id)
     photos.append(str_user_id_photo_id)
-    resul = api.photos.getById(photos=photos, extended=1, v=api_vk_version)
+    resul = api.photos.getById(photos=photos, extended=1, v=vk_api_version)
     print(resul)
     return resul
 
@@ -1118,13 +1106,13 @@ volni_veter_uid = 131303037
 agr_id = 32007325
 gorkiy_id = 18629696
 
-attachments = [
+attachments = (
     'audio-41360940_426516897',
     'audio-41360940_327478545',
     'audio-41360940_456239024',
     'audio-41360940_456239025',
     'photo-41360940_378305307'
-]
+)
 
 # первая цифра - id владельца, вторая - id аудио
 # старые id для Макса
@@ -1208,7 +1196,7 @@ def add_friend(api, user_id):
 
 
 def add_wall_like(api, owner_id, wall_post_id):
-    like_res = api.likes.add(type='wall', owner_id=owner_id, item_id=wall_post_id, v=api_vk_version)
+    like_res = api.likes.add(type='wall', owner_id=owner_id, item_id=wall_post_id, v=vk_api_version)
 
 
 def get_wall_posts(api, owner_id=-49887978, **kwargs):
@@ -1224,7 +1212,7 @@ def get_wall_posts(api, owner_id=-49887978, **kwargs):
         'owner_id': owner_id,
     }
     logger.info(data_dict)
-    return api.wall.get(v=api_vk_version, **data_dict)
+    return api.wall.get(v=vk_api_version, **data_dict)
 
 
 def posts_wall_message(api, owner_id, message, attachments, **kwargs):
@@ -1288,7 +1276,7 @@ def many_posts_wall_message(
                     if is_run_from_interface is True:
                         if auto_captcha:
                             save_have_got_captcha(erro)  # сохраняем каптчу в файл
-                            captcha_inputed = work_with_RuCaptcha()
+                            captcha_inputed = work_with_ru_captcha()
                         else:
                             webbrowser.open_new_tab(erro.error_data['captcha_img'])
                             print(erro.error_data['captcha_img'])
@@ -1425,7 +1413,7 @@ def add_bots_to_friends_of_each_other(postgres_con, postgres_cur, users_api, bot
                 res = users_api[bots_api_num][0].friends.add(
                     user_id=bots_senders[bots_num2].vk_user_id,
                     text='добавляем в друзья',
-                    v=api_vk_version
+                    v=vk_api_version
                 )
                 print(res)
                 if res == 1:
@@ -1443,7 +1431,7 @@ def add_bots_to_friends_of_each_other(postgres_con, postgres_cur, users_api, bot
                     # если параметр True,
                     # то функция становится генератором для приема данных от интерфейса с помощью send
                     save_have_got_captcha(erro)  # сохраняем каптчу в файл
-                    captcha_guessed = work_with_RuCaptcha()
+                    captcha_guessed = work_with_ru_captcha()
                     captcha_sid = erro.error_data['captcha_sid'],
                     res = users_api[bots_api_num][0].friends.add(
                         user_id=bots_senders[bots_num2].vk_user_id,
@@ -1496,11 +1484,11 @@ def create_photo_comment(
     """
     if captcha_sid is None and captcha_key is None:
         api.photos.createComment(
-            v=api_vk_version, owner_id=owner_id, photo_id=photo_id, message=message, attachments=attachments
+            v=vk_api_version, owner_id=owner_id, photo_id=photo_id, message=message, attachments=attachments
         )
     else:
         api.photos.createComment(
-            v=api_vk_version, owner_id=owner_id, photo_id=photo_id, message=message, attachments=attachments,
+            v=vk_api_version, owner_id=owner_id, photo_id=photo_id, message=message, attachments=attachments,
             captcha_sid=captcha_sid, captcha_key=captcha_key)
 
 def make_message_in_privat(user_name, user_text=None, is_multitext=False):
@@ -1644,7 +1632,7 @@ def final_getting_subscribers(api, group_id, offset=0, insert_to_aim_group=False
         group_id=group_id,
         fields=['can_write_private_message', 'sex', 'bdate', 'city'],
         offset=offset,
-        v=api_vk_version
+        v=vk_api_version
     )
     # print(dict_res_members_of_group)
 
@@ -1669,7 +1657,7 @@ def final_getting_subscribers_with_offsets_loop(api, group_id, end_digit=None, o
     нужна, потому что за раз можно дернуть только 1000 пользователей
     """
     # сначала нужно узнать, сколько подписчиков в группе
-    group_info = api.groups.getById(group_id=group_id, fields=['members_count'], v=api_vk_version)
+    group_info = api.groups.getById(group_id=group_id, fields=['members_count'], v=vk_api_version)
     count_of_subscribers = group_info[0]['members_count']
     end_digit = count_of_subscribers + 1000
     if insert_to_aim_group:
@@ -1720,7 +1708,7 @@ def get_ava_id_and_insert_in_into_db(
         if user_info[8] is None:
             print(user_info[1])
             try:
-                res = api.users.get(user_ids=user_info[1], fields=['photo_id'], v=api_vk_version)
+                res = api.users.get(user_ids=user_info[1], fields=['photo_id'], v=vk_api_version)
                 print(res)
                 if 'photo_id' in res[0].keys():
                     photo_id = res[0]['photo_id'].split('_')[1]
@@ -1737,6 +1725,29 @@ def get_ava_id_and_insert_in_into_db(
     return 'OK'
 
 
+def multiprocessing_decorator_get_settings_of_photo(fun):
+    def wrapper(api,
+                postgres_con,
+                postgres_cur,
+                group_id=None,
+                is_run_from_interface=None,
+                delay_between_gets=0.4,
+                list_users_info=None):
+        logger.info("{} - запускаем функцию в отдельном процессе: {}".format(datetime.now(), fun))
+        p = Process(target=fun, args=(
+            api,
+            postgres_con,
+            postgres_cur,
+            group_id,
+            is_run_from_interface,
+            delay_between_gets,
+            list_users_info))
+        p.start()
+        p.join()
+    return wrapper
+
+
+@multiprocessing_decorator_get_settings_of_photo
 def get_settings_of_photo(
         api,
         postgres_con,
@@ -1777,8 +1788,14 @@ def get_settings_of_photo(
                 except vk.exceptions.VkAPIError as erro:
                     if erro == 'Access Denied':
                         print('исключение при попытке получить настройки фотографии')
-                        update_to_vk_group_user_union_can_comment_ava(postgres_con, postgres_cur, user_info[8],
-                                                                      user_info[1], False)
+                        update_to_vk_group_user_union_can_comment_ava(
+                            postgres_con,
+                            postgres_cur,
+                            user_info[8],
+                            user_info[1],
+                            False)
+                    else:
+                        print('неизвестное исключение при попытке получить настройки фотограйи: ', erro)
         except requests.ReadTimeout:
             print('не удалось выполнить http-запрос, пробуем снова')
             time.sleep(60)
@@ -2192,6 +2209,52 @@ def multiproc_do_comment_photo(
         time.sleep(3)
 
 
+def _do_like_inside_commenting_photo_process(api, user, is_run_from_interface, delay_between_posts):
+    try:
+        try:
+            like_res = api.likes.add(type='photo', owner_id=user[1], item_id=user[8], v=vk_api_version)
+            print(like_res, 'done like')
+            logger.info(datetime.now(), ' - done_like: {}'.format(like_res))
+        except vk.exceptions.VkAPIError as erro:
+            if erro.is_captcha_needed() is True and erro.message == 'Captcha needed':
+                logger.warning("{} - поймано исключение при попытке лайкнуть: {}".format(datetime.now(), str(erro)))
+                print("{} - поймано исключение при попытке лайкнуть: {}".format(datetime.now(), erro))
+                save_have_got_captcha(erro)  # сохраняем каптчу в файл
+                captcha_guessed = work_with_ru_captcha()
+                # webbrowser.open_new_tab(erro.error_data['captcha_img']) # открываем фото с капчей.
+                print(erro.error_data['captcha_img'])
+                # если параметр True, то функция становится генератором для приема данных
+                # от интерфейса с помощью send. В противном случае, ожидает ввода данных со стандартного ввода
+                if is_run_from_interface is True:
+                    captcha_inputed = yield 'handling_exception'
+                    print("{} - введеная капча {}".format(datetime.now(), captcha_inputed))
+                    logger.info("{} - введеная капча {}".format(datetime.now(), captcha_inputed))
+                else:
+                    captcha_inputed = input()
+                    # ветка обработки исключений на случай ошибки в капче
+                try:
+                    like_res = api.likes.add(
+                        type='photo',
+                        owner_id=user[1],
+                        item_id=user[8],
+                        captcha_sid=erro.error_data['captcha_sid'],
+                        # captcha_key=captcha_inputed
+                        captcha_key=captcha_guessed,
+                        v=vk_api_version
+                    )
+                    print(like_res, 'done like after captcha input')
+                except vk.exceptions.VkAPIError as erro:
+                    if erro.is_captcha_needed() is True and erro.message == 'Captcha needed':
+                        print("Неверно ввели каптчу")
+            else:
+                logging.warning("{} - неизвестное исключение при попытке лайкнуть: {}".format(datetime.now(), erro))
+        time.sleep(delay_between_posts)
+    except TimeoutError:
+        print('отловили ошибку Http-таймаута')
+        pass
+        # todo как-то обработать исключение?
+
+
 # @decorator_do_comment_photo
 def do_comment_photo(
         api,
@@ -2223,13 +2286,16 @@ def do_comment_photo(
     :param list_of_vk_users_to_send:
     :return:
     """
+    if postgres_con is None and postgres_cur is None:
+        postgres_con, postgres_cur = connection_to_postgres()
+
     if is_multitext:
         # если параметр is_multitext передается, то тексты передаются в нём!!
         message_text = is_multitext
     else:
         message_text = '{}, С новым годом!)))'
     list_of_vk_errors = select_vk_errors(postgres_con, postgres_cur)
-    print('список ошибок:', list_of_vk_errors)
+    # print('список ошибок:', list_of_vk_errors)
 
     # костыль для отправки посредством мультипроцессинга, но что поделать!!
     # костыль для отправки посредством мультипроцессинга, но что поделать!!
@@ -2241,11 +2307,12 @@ def do_comment_photo(
     # print('Got users to sending ava comment: ', tupl_members_inner)
     count = 0
     for user in tupl_members_inner:
-        # метод для комментирования фоток
         # print(user)
         if bot_sender:
             if bot_sender.day_sent_message_count > limit_count_of_message:
                 print("Messages limit for sender reached, distribution is finished", bot_sender)
+                logger.info("{} - message limit for sender is reached, distribution is finished: {}"
+                            .format(datetime.now(), bot_sender))
                 break
                 # todo ну капец ущербная логика. сделал так только из-за отсутствия времени
         if count > limit_count_of_message:
@@ -2254,48 +2321,9 @@ def do_comment_photo(
 
         if user[9] is True and user[5] is not True and user[6] is not True:
             print(user)
+            logger.info("{} - работаем с пользователем ВК {}".format(datetime.now(), user))
             # ставим лайк!!!
-            try:
-                try:
-                    like_res = api.likes.add(type='photo', owner_id=user[1], item_id=user[8],
-                                             v=api_vk_version)  # псевдодекоратор
-                    print(like_res, 'done like')
-                    logger.info('done_like: {}'.format(like_res))
-                except vk.exceptions.VkAPIError as erro:
-                    logging.warning("Исключение при попытке лайкнуть", erro)
-                    if erro.is_captcha_needed() is True and erro.message == 'Captcha needed':
-                        print('перехватили исключение при попытке лайкнуть.')
-                        save_have_got_captcha(erro)  # сохраняем каптчу в файл
-                        captcha_guessed = work_with_RuCaptcha()
-                        # webbrowser.open_new_tab(erro.error_data['captcha_img']) # открываем фото с капчей.
-                        print(erro.error_data['captcha_img'])
-                        # если параметр True, то функция становится генератором для приема данных
-                        # от интерфейса с помощью send
-                        if is_run_from_interface is True:
-                            captcha_inputed = yield 'handling_exception'
-                            print("DEBUG", captcha_inputed)
-                        else:
-                            captcha_inputed = input()
-                            # ветка обработки исключений на случай ошибки в капче
-                        try:
-                            like_res = api.likes.add(
-                                type='photo',
-                                owner_id=user[1],
-                                item_id=user[8],
-                                captcha_sid=erro.error_data['captcha_sid'],
-                                # captcha_key=captcha_inputed
-                                captcha_key=captcha_guessed,
-                                v=api_vk_version
-                            )
-                            print(like_res, 'done like after captcha input')
-                        except vk.exceptions.VkAPIError as erro:
-                            if erro.is_captcha_needed() is True and erro.message == 'Captcha needed':
-                                print("Неверно ввели каптчу")
-                time.sleep(delay_between_posts)
-            except TimeoutError:
-                print('отловили ошибку Http-таймаута')
-                pass
-                # todo как-то обработать исключение?
+            _do_like_inside_commenting_photo_process(api, user, is_run_from_interface, delay_between_posts)
             # делаем пост под фото!!!
             try:  # перехватываем исключения капчи и недостатка прав
                 if consider_user_sex is True:
@@ -2332,7 +2360,7 @@ def do_comment_photo(
                     )
 
                 update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, user[1])  # пилять!!!
-                print('POSTed SUCCESS!')
+                logger.info("{} - ava comment posted successful to {}".format(datetime.now(), user))
                 count += 1
                 if bot_sender:
                     bot_sender.day_sent_message_count += 1
@@ -2359,12 +2387,27 @@ def do_comment_photo(
                         print(erro, 'updating photo info in database')
                         update_to_vk_photo_comment_state_group_user_union(
                             postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
+
+                    # 7 ошибка возникает, в основном, (но не всегда!) тогда, когда достигнут лимит на что-либо
+                    # и не возможно выполнить твоё действие. В этом случае завершаем отпраку или нет -
+                    # не до конца ясно. Поэтому пока закомментирован функционал обновления свойств фото в бд
                     elif erro.message == 'Permission to perform this action is denied: wall or photo comment not added':
-                        print(erro, 'updating photo info in database')
-                        update_to_vk_photo_comment_state_group_user_union(
-                            postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
+                        # print(erro, 'updating photo info in database')
+                        # logger.info("{} - got error [{}] updating photo info in database"
+                        # .format(datetime.now(), erro))
+                        # update_to_vk_photo_comment_state_group_user_union(
+                        #     postgres_con, postgres_cur, user[1], can_post_ava_comment=False)
+                        print("Нужно авторизоваться под другим пользователем. Работа скрипта будет завершена")
+                        logger.info(
+                            "{} - got error [{}]. Нужно зайти под другим пользователем. Работа скрипта будет завершена"
+                            .format(datetime.now(), erro))
+                        time.sleep(delay_between_posts)
+                        break
                     else:
                         print("Нужно авторизоваться под другим пользователем. Работа скрипта будет завершена")
+                        logger.info(
+                            "{} - got error [{}]. Нужно зайти под другим пользователем. Работа скрипта будет завершена"
+                            .format(datetime.now(), erro))
                         time.sleep(600)
                         time.sleep(delay_between_posts)
                         # todo подумать над доработкой&&&
@@ -2380,7 +2423,7 @@ def do_comment_photo(
                     print(erro.is_captcha_needed())
                     if erro.is_captcha_needed() is True and erro.message == 'Captcha needed':
                         save_have_got_captcha(erro)
-                        captcha_guessed = work_with_RuCaptcha()
+                        captcha_guessed = work_with_ru_captcha()
                         # webbrowser.open_new_tab(erro.error_data['captcha_img'])
                         print(erro.error_data['captcha_img'])
                         # если параметр True, то функция становится генератором для приема данных
@@ -2400,6 +2443,10 @@ def do_comment_photo(
                                 # captcha_key=captcha_inputed
                                 captcha_key=captcha_guessed)
                             print('Posted SUCCESSfully!')
+                            logger.info("{} - успешно сделан пост после разгадки капчи пользователю {}".format(
+                                datetime.now(),
+                                user)
+                            )
                             update_to_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur,
                                                                               user[1])  # пилять!!!
                             count += 1
@@ -2416,7 +2463,7 @@ def do_comment_photo(
                             time.sleep(delay_between_posts)
                         except:
                             if erro.is_captcha_needed() is True and erro.message == 'Captcha needed':
-                                print("Неверно ввели каптчу")
+                                print("Неверно ввели каптчу второй раз??")
                             else:
                                 print(erro)
                 else:
@@ -2424,6 +2471,26 @@ def do_comment_photo(
             time.sleep(delay_between_posts)
 
 
+def get_vk_api_object(access_token=None):
+    # получение объекта аpi при работе из интерфейса
+    # todo продумать получение токена из интерфейса при начале отправки
+    if access_token:
+        # токен получен из бд через представление
+        logger.info('{}: получаем api с пом токена из БД: {}'.format(datetime.now(), access_token))
+        api = get_api(access_token)
+
+        return api
+    else:
+        # токен получаем сейчас с помощью функции и браузера
+        access_token, _ = get_saved_auth_params()
+        if not access_token or not _:
+            access_token, _ = get_auth_params()
+        api = get_api(access_token)
+
+        return api
+
+
+# типа deprecated, подключение к БД негоже создавать одновременно с объектом API
 def get_important_params(access_token=None):
     # получение объекта аpi при работе из интерфейса
     # todo продумать получение токена из интерфейса при начале отправки

@@ -47,15 +47,15 @@ class ChoiceGroupForm(forms.Form):
     """
     Класс-родитель для форм, в которых есть поле для выбора группы
     """
-    CHOICES = [(None,'Не задано')]
+    GROUP_CHOICES = [(None, 'Не задано')]
     for obj in VkGroupUserUnion2.objects.distinct('vk_group_id'):
-        CHOICES.append((obj.vk_group_id, 'группа ' + str(obj.vk_group_id)))
+        GROUP_CHOICES.append((obj.vk_group_id, 'группа ' + str(obj.vk_group_id)))
     vk_group_id = forms.ChoiceField(
-            label='Идентификатор группы', required=True, choices=CHOICES,
+            label='Идентификатор группы', required=True, choices=GROUP_CHOICES,
     )
 
     BOTS_CHOICES = [(None, 'Не задано')]
-    for bot in BotsSenders.objects.all():
+    for bot in BotsSenders.objects.filter(is_blocked = False):
         BOTS_CHOICES.append((str(bot.vk_user_id), bot.surname))
 
     bots_senders = forms.ChoiceField(
@@ -338,3 +338,8 @@ class LikeAimGroupPostsForm(forms.Form):
         required=True,
         choices=CHOICES_for_aim_group_posts_form
     )
+
+
+class GetBotsNotificationsForm(forms.Form):
+    get_notifications_btn = forms.HiddenInput(attrs={'get_notifications': 'True'},)
+    render_result_get_notifications_btn = get_notifications_btn.render('get_notifications_btn', 'True')

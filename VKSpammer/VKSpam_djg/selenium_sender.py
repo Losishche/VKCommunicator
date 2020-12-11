@@ -12,7 +12,7 @@ class SeleniumSender:
     sleep_time = 3
     message_page_url = "https://vk.com/write{}"
     public_page_url = "https://vk.com/public{}"
-    write_message_elemet_of_form = "im_editable{}"
+    write_message_element_of_form = "im_editable{}"
     login = ''
     password = ''
     chromeDriverPath = '/home/grishaev/PycharmProjects/VKSpammer/WebDriver/chromedriver'

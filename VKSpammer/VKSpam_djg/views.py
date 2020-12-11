@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import sys
-import logging
 import random
 import socket
 from selenium.common.exceptions import ElementNotVisibleException as elementNotVisibleException
@@ -12,6 +11,8 @@ from multiprocessing import Process
 pathWithBuisnessLogic = '/home/grishaev/PycharmProjects/VKSpammer/'
 sys.path.append(pathWithBuisnessLogic)
 
+from .commenters import *
+from .telegram_bot import TelegramBot
 from django.shortcuts import render,  HttpResponseRedirect
 from .forms import CampParamsForm
 from .forms import DoCommentPhotoForm
@@ -40,20 +41,22 @@ from app_info import final_sending_privat_message_with_multisender
 from app_info import multiproc_do_comment_photo, multiproc_get_photo_params
 from app_info import add_bots_to_friends_of_each_other
 from app_info import get_wall_posts
+from app_info import vk_api_version
+from app_info import day_ava_message_limit
 # from app_info import attachments # todo временное
 # from work_with_DB import select_count_have_posted_ava_messages
 from work_with_DB import connection_to_postgres
 from .models import VkGroupUserUnion2, BotsSenders, CampParams, AvaMessages, VKApplications, GorkiyGroupUser, \
     PrivateMessages, BotsFriends, InvitePrivateMessages, InviteMessagesToLoyalGroupUsers, VkWallPosts
-from django.db.utils import DataError
 from django.core.exceptions import ObjectDoesNotExist
 # from app_info import do_comment_photo
 from .selenium_sender import SeleniumSender
+from .vk_notifications_api import VkNotifications
 
-vk_api_version = '5.00'
+# vk_api_version = '5.00'
 # proccess_log_file_path =
 # '/home/grishaev/PycharmProjects/VKSpammer/VKSpammer/VKSpam_djg/static/VKSpam_djg/process_log.txt'
-logger = logging.getLogger('logger_for_communicator')
+logger = logging.getLogger('logger_view_communicator')
 logger.setLevel(logging.INFO)
 # fh = logging.FileHandler(proccess_log_file_path)
 # fh.setLevel(logging.INFO)
@@ -76,9 +79,8 @@ def index(request):
 
         # logging.debug(get_token_form.is_valid())
         # logging.debug(ask_token_form.is_valid())
-        res = request.POST
-        logger.info('{}: res'.format(datetime.now()))
-        print(res)
+        logger.info('{}: '.format(datetime.now(), request.POST))
+        print(request.POST)
         if get_token_form.is_valid():
             # process the data in form.cleaned_data as required
             # redirect to a new URL:
@@ -91,10 +93,8 @@ def index(request):
             if sender:
                 sender.vk_token = parsed_token
                 sender.save()
-
-            result_of_hangling_token_string = "Токен успешно загружен в программу " + parsed_token
-            logging.info('обработали полученный токен')
-            context['result_of_hangling_token_string'] = result_of_hangling_token_string
+            logger.info("{} - обработали полученный токен: {}".format(datetime.now(), parsed_token))
+            context['result_of_handling_token_string'] = "Токен успешно загружен в программу " + parsed_token
             # return HttpResponseRedirect('/thanks/')
             # elif request.POST.get('ask_token_btn'): хз, но почему-то изменилось ПОСЛЕ ДОБАВЛЕНИЯ CSS((
             # result = request.POST.get('ask_token_btn')#
@@ -359,12 +359,75 @@ def get_bots_and_apis():
             # api, conn, cur = get_important_params(bot.vk_token)
 
             # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-        if (timezone.now() - bot.date_of_starting_day_counting).days < 1 and bot.day_sent_message_count < 90:
+        if (timezone.now() - bot.date_of_starting_day_counting).days < 1 \
+                and bot.day_sent_message_count < day_ava_message_limit:
             api, conn, cur = get_important_params(bot.vk_token)
             # texts = AvaMessages.objects
             users_api.append(list(get_important_params(bot.vk_token)) + [bot])
 
     return users_api
+
+
+def _execute_distribution_with_one_sender_with_strategy(do_comment_photo_form, context):
+    vk_group_id = do_comment_photo_form.cleaned_data.get('vk_group_id')  # потому что словарь!
+    message = do_comment_photo_form.cleaned_data['message']
+    is_autocaptcha = do_comment_photo_form.cleaned_data.get('is_autocaptcha')
+    is_sex_considered = do_comment_photo_form.cleaned_data.get('is_sex_considered')
+    bots_sender_name = do_comment_photo_form.cleaned_data.get('bots_senders')
+    is_multitext = do_comment_photo_form.cleaned_data.get('is_multitext')
+    # message = do_comment_photo_form.message
+    print('starting work with group: {}, message: \'{}\', sender: {}', vk_group_id, message, bots_sender_name)
+    # пишет в лог для отображения в интерфейсе
+    logger.info(
+        'starting work with group: {}, message: \'{}\', sender: {}'.format(vk_group_id, message, bots_sender_name))
+    # api, postgres_con, postgres_cur = get_important_params()
+    # generator_for_commenting = do_comment_photo(
+    # api, postgres_con, postgres_cur, vk_group_id, consider_user_sex=True, is_run_from_interface=True)
+    # todo костыльные внутренние серверы блин
+
+    sock = socket.socket()
+    sock.connect(('localhost', 9092))
+    print('{} - автокапча активирована? {}'.format(datetime.now(), is_autocaptcha))
+    logger.info('{} - автокапча активирована? {}'.format(datetime.now(), is_autocaptcha))
+
+    bot_sender = BotsSenders.objects.get(vk_user_id=bots_sender_name)
+    user_token = bot_sender.vk_token
+    # работа напрямую с функцией backend
+    # if BotsSenders.object.get()
+    print(datetime.now(), 'start distr with user and token', bot_sender, user_token)
+    logger.info('{} - start distr with user: {} and token: {}'.format(
+        datetime.now(), bot_sender, user_token)
+    )
+    if is_autocaptcha:
+        # доделать стратегии для отправки без автокапчи
+        commenter = Commenter(bot_sender, vk_group_id, is_autocaptcha, is_sex_considered, is_multitext)
+        commenter.strategy.post_photo_comment()
+        sock.close()
+    else:
+        # работа через внутренний сервер!!!!
+        open_signal = bytes('start_commenting_photo', encoding='utf8')
+        # print(message)
+        sock.send(open_signal)
+        data = sock.recv(1024)
+        if data == b'start_commenting_photo_resp':
+            parameters = vk_group_id + ', ' + message
+            parameters = bytes(parameters, encoding='utf8')
+            sock.send(parameters)
+            context['status_for_start_of_posting_ava_comment'] = \
+                do_comment_photo_form.status_for_start_of_posting_ava_comment
+            data = sock.recv(1024)
+            # std_out_messages = open('/home/grishaev/PycharmProjects/VKSpammer/test_stdout')
+            std_out_messages = open('../test_stdout')
+            context['std_out_messages'] = std_out_messages.readline()
+            if data == b'cought_exeption':
+                context['status_for_cought_exeption'] = '!!!!'  # что ЭТО такое??
+        print("{} - значение протокола, полученное от 'внутреннего сервера': {}".format(datetime.now(), data))
+        if data == 'end':
+            # sock.close()
+            context['status_for_finish_of_posting_ava_comment'] = \
+                do_comment_photo_form.status_for_finish_of_posting_ava_comment
+        elif data == 'unknown_parameter':
+            sock.close()
 
 
 def distr_to_avas(request):
@@ -374,7 +437,7 @@ def distr_to_avas(request):
     temp_stdout = sys.stdout
     # sys.stdout = open(proccess_log_file_path, 'w')
     if request.method == 'POST':
-        logger.info('обработали запрос')
+        logger.info('{} - обработали запрос на старт рассылки по аватаркам'.format(datetime.now()))
         # create a form instance and populate it with data from the request:
         do_comment_photo_form = DoCommentPhotoForm(request.POST)
         do_comment_photo_multisender_form = DoCommentPhotoMultisenderForm(request.POST)
@@ -385,246 +448,18 @@ def distr_to_avas(request):
               )
         print(do_comment_photo_multisender_form.is_valid(),  do_comment_photo_multisender_form.cleaned_data)
         # sleep(300)
-        logger.info('Is form valid? {}'.format(do_comment_photo_form.is_valid()))
+        logger.info('{} - is form valid? {}'.format(datetime.now(), do_comment_photo_form.is_valid()))
         if do_comment_photo_form.is_valid():  # чтобы работать с формой, нужно выполнить ф-ю is_valid!!!
-            vk_group_id = do_comment_photo_form.cleaned_data.get('vk_group_id')  # потому что словарь!
-            message = do_comment_photo_form.cleaned_data['message']
-            is_autocaptcha = do_comment_photo_form.cleaned_data.get('is_autocaptcha')
-            is_sex_considered = do_comment_photo_form.cleaned_data.get('is_sex_considered')
-            bots_sender_name = do_comment_photo_form.cleaned_data.get('bots_senders')
-            is_multitext = do_comment_photo_form.cleaned_data.get('is_multitext')
-            # message = do_comment_photo_form.message
-            print('тут что-то происходит', vk_group_id, message, bots_sender_name)
-            # пишет в лог для отображения в интерфейсе
-            logger.info('starting work with group: {}, message: \'{}\', sender: {}'.format(vk_group_id, message, bots_sender_name))
-            # a pi, postgres_con, postgres_cur = get_important_params()
-            # generator_for_commenting = do_comment_photo(
-            # api, postgres_con, postgres_cur, vk_group_id, consider_user_sex=True, is_run_from_interface=True)
-            # todo костыльные внутренние серверы блин
-
-            sock = socket.socket()
-            sock.connect(('localhost', 9092))
-            print(is_autocaptcha)
-            logger.info('автокапча активирована? {}'.format(is_autocaptcha))
-            if is_autocaptcha:
-                if is_sex_considered:
-                    # некоторое почти дублирование кода
-                    if bots_sender_name:
-
-                        bots_sender = BotsSenders.objects.get(vk_user_id=bots_sender_name)
-                        user_token = bots_sender.vk_token
-                        # работа напрямую с функцией backend
-                        # if BotsSenders.object.get()
-                        print('start distr with token', user_token)
-                        logger.info('start distr with token: {}'.format(user_token))
-                        api, conn, cur = get_important_params(user_token)
-                        if is_multitext:
-                            texts = AvaMessages.objects
-                            gen_cp = do_comment_photo(
-                                api,
-                                conn,
-                                cur,
-                                vk_group_id,
-                                consider_user_sex=True,
-                                is_run_from_interface=True,
-                                auto_captcha=True,
-                                is_multitext=texts,
-                                bot_sender=bots_sender
-                            )
-                            # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-                            print("КАКОЙ_ТО ОЧЕНЬ СТРАННЫЙ БАГ", gen_cp)
-                            for item in gen_cp:
-                                print('iteration_of_gen: {}'.format(item))
-                                logger.info('iteration_of_gen: {}'.format(item))
-                        else:
-                            gen_cp = do_comment_photo(
-                                api,
-                                conn,
-                                cur,
-                                vk_group_id,
-                                consider_user_sex=True,
-                                is_run_from_interface=True,
-                                auto_captcha=True,
-                                bot_sender=bots_sender
-                            )
-                            # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-                            print("КАКОЙ_ТО ОЧЕНЬ СТРАННЫЙ БАГ", gen_cp)
-                            for item in gen_cp:
-                                print('iteration_of_gen: {}'.format(item))
-                                logger.info('iteration_of_gen: {}'.format(item))
-
-                    else:
-                        if is_multitext:
-                            api, conn, cur = get_important_params()
-                            texts = AvaMessages.objects
-                            gen_cp = do_comment_photo(
-                                api,
-                                conn,
-                                cur,
-                                vk_group_id,
-                                consider_user_sex=True,
-                                is_run_from_interface=True,
-                                auto_captcha=True,
-                                is_multitext=texts
-                            )
-                            # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-                            for item in gen_cp:
-                                print(item)
-                                logger.info('user: {}'. format(item))
-                        else:
-                            api, conn, cur = get_important_params()
-                            gen_cp = do_comment_photo(
-                                api, conn, cur, vk_group_id,
-                                consider_user_sex=True, is_run_from_interface=True, auto_captcha=True
-                            )
-                            # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-                            for item in gen_cp:
-                                print(item)
-                                logger.info('user: {}'. format(item))
-                else:
-                    if bots_sender_name:
-                        user_token = BotsSenders.objects.get(vk_user_id=bots_sender_name).vk_token
-                        # работа напрямую с функцией backend
-                        # if BotsSenders.object.get()
-                        print('start distr with token', user_token)
-                        logger.info('start distr with token: {}'.format(user_token))
-                        api, conn, cur = get_important_params(user_token)
-                        if is_multitext:
-                            # todo убрать избыточность кода!!!!
-                            texts = AvaMessages.objects
-                            gen_cp = do_comment_photo(
-                                api,
-                                conn,
-                                cur,
-                                vk_group_id,
-                                consider_user_sex=True,
-                                is_run_from_interface=True,
-                                auto_captcha=True,
-                                is_multitext=texts
-                            )
-                            # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-                            print("КАКОЙ_ТО ОЧЕНЬ СТРАННЫЙ БАГ", gen_cp)
-                            for item in gen_cp:
-                                print('iteration_of_gen: {}'.format(item))
-                                logger.info('iteration_of_gen: {}'.format(item))
-                        else:
-                            gen_cp = do_comment_photo(
-                                api, conn, cur, vk_group_id, is_run_from_interface=True, auto_captcha=True)
-                            # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-                            print("КАКОЙ_ТО ОЧЕНЬ СТРАННЫЙ БАГ", gen_cp)
-                            for item in gen_cp:
-                                print('iteration_of_gen: {}'.format(item))
-                                logger.info('iteration_of_gen: {}'.format(item))
-                    else:
-                        if is_multitext:
-                            api, conn, cur = get_important_params()
-                            texts = AvaMessages.objects
-                            gen_cp = do_comment_photo(api,
-                                                      conn,
-                                                      cur,
-                                                      vk_group_id,
-                                                      is_run_from_interface=True,
-                                                      auto_captcha=True,
-                                                      is_multitext=texts)
-                            # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-                            for item in gen_cp:
-                                print(item)
-                                logger.info('user: {}'. format(item))
-                        else:
-                            api, conn, cur = get_important_params()
-                            gen_cp = do_comment_photo(
-                                api, conn, cur, vk_group_id, is_run_from_interface=True, auto_captcha=True)
-                            # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-                            for item in gen_cp:
-                                print(item)
-                                logger.info('user: {}'. format(item))
-            else:
-                # работа через внутренний сервер!!!!
-                open_signal = bytes('start_commenting_photo', encoding='utf8')
-                # print(message)
-                sock.send(open_signal)
-                data = sock.recv(1024)
-                if data == b'start_commenting_photo_resp':
-                    parameters = vk_group_id + ', ' + message
-                    parameters = bytes(parameters, encoding='utf8')
-                    sock.send(parameters)
-                    context['status_for_start_of_posting_ava_comment'] = \
-                        do_comment_photo_form.status_for_start_of_posting_ava_comment
-                    data = sock.recv(1024)
-                    # std_out_messages = open('/home/grishaev/PycharmProjects/VKSpammer/test_stdout')
-                    std_out_messages = open('../test_stdout')
-                    context['std_out_messages'] = std_out_messages.readline()
-                    if data == b'cought_exeption':
-                        context['status_for_cought_exeption'] = '!!!!' # что ЭТО такое??
-
-                print(data)
-                if data == 'end':
-                    # sock.close()
-                    context['status_for_finish_of_posting_ava_comment'] = \
-                        do_comment_photo_form.status_for_finish_of_posting_ava_comment
-                elif data == 'unknown_parameter':
-                    sock.close()
+            _execute_distribution_with_one_sender_with_strategy(do_comment_photo_form, context)
 
         elif do_comment_photo_multisender_form.is_valid():  # чтобы работать с формой, нужно выполнить ф-ю is_valid!!!
             vk_group_id = do_comment_photo_multisender_form.cleaned_data.get('vk_group_id')
-            set_of_senders = BotsSenders.objects.filter(is_blocked=False)
+            starting_sender = BotsSenders.objects.filter(is_blocked=False).order_by("id")[20:]
             # users_api = []
-            print('пришло на ветку с мультисендером, но без мультипроцессинга')
-            for bot in set_of_senders:
-                print('start distr with token', bot.surname, bot.vk_login)
-                logger.info('start distr with bot: {}, {}'.format(bot.surname, bot.name))
-                # date_offset = NaiveTZInfo(+3)
-                if bot.date_of_starting_day_counting is None:
-                    bot.date_of_starting_day_counting = timezone.now()
-                    bot.save()
-
-                if (timezone.now() - bot.date_of_starting_day_counting).days >= 1:
-                    bot.date_of_starting_day_counting = timezone.now()
-                    bot.day_sent_message_count = 0
-                    bot.save()
-                    # todo убрать избыточность кода
-                    # users_api.append(get_important_params(bot.vk_token))
-                    api, conn, cur = get_important_params(bot.vk_token)
-                    texts = AvaMessages.objects
-
-                    gen_cp = do_comment_photo(
-                        api,
-                        conn,
-                        cur,
-                        vk_group_id,
-                        consider_user_sex=False,
-                        is_run_from_interface=True,
-                        auto_captcha=True,
-                        is_multitext=texts,
-                        bot_sender=bot
-                    )
-                    # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-                    for item in gen_cp:
-                        print(item)
-                        logger.info('user: {}'. format(item))
-                if (timezone.now() - bot.date_of_starting_day_counting).days < 1 and bot.day_sent_message_count < 90:
-                    api, conn, cur = get_important_params(bot.vk_token)
-                    texts = AvaMessages.objects
-                    # users_api.append(get_important_params(bot.vk_token)[0])
-                    gen_cp = do_comment_photo(
-                        api,
-                        conn,
-                        cur,
-                        vk_group_id,
-                        consider_user_sex=False,
-                        is_run_from_interface=True,
-                        auto_captcha=True,
-                        is_multitext=texts,
-                        bot_sender=bot
-                    )
-                    # чёрт знает какая логика!!! тут прямо в функцию, в else - через внут.сервер!!!
-
-                    for item in gen_cp:
-                        print(item)
-                        logger.info('user: {}'. format(item))
-                else:
-                    logger.info('{}: дневной лимит для пользователя "{}" исчерпан'.format(datetime.now(), bot.surname))
-                    print('{}: дневной лимит для пользователя "{}" исчерпан'.format(datetime.now(), bot.surname))
+            print('{} - пришло на ветку с мультисендером, но без мультипроцессинга, '
+                  'starting_sender пока игнорируется'.format(datetime.now()))
+            commenter = Commenter(starting_sender, vk_group_id, True, False, True, True)
+            commenter.strategy.post_photo_comment()
 
         elif do_comment_photo_mustiproc_multisend_form.is_valid():
             # todo избыточное дублирование кода из предыдущего условия ДЛЯ НАГЛЯДНОСТИ!!!
@@ -687,40 +522,6 @@ def distr_to_avas(request):
                     is_multitext=texts,
                     # bot_sender = api_u[3],
                 )
-            # for api_u in users_api:
-            #    texts = AvaMessages.objects
-            #    print('создаём генератор!!!!')
-            #    gen_cp = multiproc_do_comment_photo(
-            #          api_u[0], api_u[1], api_u[2], vk_group_id,
-            #            consider_user_sex=False, is_run_from_interface=True, auto_captcha=True, is_multitext=texts,
-            #           bot_sender = api_u[3],
-            #        )
-            #    gens_list.append(gen_cp)
-            # Б РРР АРХИТЕРКТУРА!!! НУЖНО ЗАПУСТИТЬ ВСЕ ГЕНЕРАТОРЫ, КАЖДЫЙ ИЗ КОТОРОЫХ В ОТДЕЛЬНОМ ПРОЦЕССЕ? мультипроцессинга??
-            # for gen_cp in gens_list:
-            # БЛИИИН ОБЪЯВЛЕНИЕ ФУНКЦИИ ТУТ!!!
-            # def gen_starter(gen_c):
-            #    for item in gen_c:
-            #        print(item)
-            #        logger_for_communicator.info('user: {}'. format(item))
-
-            # for gen in gens_list: #range(0, len(gens_list)):
-            #    p = Process(target=gen_starter, args=(gen)
-            # )
-            #    allProcess.append(p)
-            # print(allProcess)
-
-            # for p in allProcess:
-            #    print('запускаем процесс!')
-            #    p.start()
-            #    print('запустили процесс!')
-            #    sleep(3)
-            # for item in gen_cp:
-            #     print(item)
-            #     logger_for_communicator.info('user: {}'. format(item))
-    # конечная ветка
-    # sys.stdout.close()
-    # sys.stdout = temp_stdout
     do_comment_photo_form = DoCommentPhotoForm()
     enter_captcha_form = EnterCaptchaForm()
     do_comment_photo_multisender_form = DoCommentPhotoMultisenderForm()
@@ -729,6 +530,7 @@ def distr_to_avas(request):
     context['do_comment_photo_multisender_form'] = do_comment_photo_multisender_form
     context['do_comment_photo_mustiproc_multisend_form'] = do_comment_photo_mustiproc_multisend_form
     context['enter_captcha_form'] = enter_captcha_form
+
     return render(request, 'VKSpam_djg/distr_to_avas.html', context)
 
 
@@ -743,12 +545,13 @@ def works_with_groups(request):
             # sleep(300)
             vk_gr_id_for_getting_settings = get_ava_info_and_photo_settings_form.cleaned_data.get('vk_group_id')
             api, postgres_con, postgres_cur = get_important_params()
-            get_ava_id_and_insert_in_into_db(api, postgres_con, postgres_cur, group_id=vk_gr_id_for_getting_settings)
+            # get_ava_id_and_insert_in_into_db(api, postgres_con, postgres_cur, group_id=vk_gr_id_for_getting_settings)
             get_settings_of_photo(api, postgres_con, postgres_cur, group_id=vk_gr_id_for_getting_settings)
 
         elif multisender_get_ava_info_and_photo_setting_form.is_valid():
-            vk_gr_id_for_getting_settings = \
-                multisender_get_ava_info_and_photo_setting_form.cleaned_data.get('vk_group_id_multisender_g_a_i_a_p_s_f')
+            vk_gr_id_for_getting_settings = multisender_get_ava_info_and_photo_setting_form.cleaned_data.get(
+                'vk_group_id_multisender_g_a_i_a_p_s_f'
+            )
             bots_apis = get_bots_and_apis()
             multiproc_get_photo_params(bots_apis, vk_gr_id_for_getting_settings, True)
             '''
@@ -1198,7 +1001,8 @@ def bots_senders_params(request):
         result = request.POST.get('autorisation')
         print(result)
         bot = BotsSenders.objects.get(id=result)
-        print('авторизуемся под пользователемэ', bot)
+        print('{} - авторизуемся под пользователем'.format(datetime.now(), bot))
+        logger.info("{} - авторизуемся под пользователем {}".format(datetime.now(), bot))
         autentification_in_vk_via_web_dr(bot.vk_login, bot.vk_password, activity_time=300)
 
     autorisation_form = AutorisationForm()
@@ -1235,17 +1039,24 @@ def get_ava_comment_text(request):
 
 
 def get_set_of_tokens(request, *args):
+    """
+    Получаем множество токенов для всех польователей, которые не заблокированы
+    :param request: http-запрос от django
+    :param args:
+    :return:
+    """
     context = {}
     if request.method == 'POST':
         get_set_of_tokens_form = GetSetOfTokensForm(request.POST)
         if get_set_of_tokens_form.is_valid():
             vk_app_list = VKApplications.objects.all()
-            bots = BotsSenders.objects.all()
+            bots = BotsSenders.objects.all().order_by('id')
             for bot in bots:
                 # if isinstance(bot.vk_token_expired, None):
-                    # bot.vk_token_expired = datetime.now()-datetime.day()
+                # bot.vk_token_expired = datetime.now()-datetime.day()
                 if not bot.is_blocked:  # and bot.vk_token_expired < datetime.now()-datetime.time():
-                    print("{}. Getting_api_params_for_bot: {} {}.".format(datetime.now(), bot.surname, bot.name))
+                    print("{} - getting_api_params_for_bot: {} {}.".format(datetime.now(), bot.surname, bot.name))
+                    logger.info("{} - getting_api_params_for_bot: {} {}.".format(datetime.now(), bot.surname, bot.name))
                     redirected_url = get_token_by_inner_driver(bot.vk_login, bot.vk_password, vk_app_list=vk_app_list)
                     token, vk_user_id, vk_token_expired = parse_and_save_auth_params(redirected_url)
                     # print(vk_token_expired)
@@ -1306,9 +1117,11 @@ def working_with_aim_group(request, *args):
                 insert_to_aim_group=True)
             if result_of_update == 'OK':
                 context['status_for_getting_subscribers_of_aim_group'] = \
-                    'добавление новых абонентов в целевую группу закончено'
+                    'добавление новых пользователей в целевую группу закончено'
                 print(result_of_update)
                 return render(request, 'VKSpam_djg/working_with_aim_group.html', context)
+            else:
+                raise RuntimeError("Не удалось добавить новых пользователей в целевую группу")
 
     get_updates_of_aim_group = GetUpdatesOfAimGroupForm()
     get_aim_group_wall_posts = GetAimGroupWallPostsForm()
@@ -1634,6 +1447,29 @@ def _multiproc_send_in_private_trough_fake_browser(bot, users_set, multitext_lis
 
     except WebDriverException as w_ex:
         logger.info("WebDriverException caught: {}, {}".format(recipient, w_ex))
+
+
+def get_notifications_for_sender_bots_and_sent_to_telegram(request):
+    context = {}
+    if request.method == 'POST':
+        bot_senders = BotsSenders.objects.order_by("id")
+        telegram_bot = TelegramBot()
+        for bot in bot_senders:
+            vk_notifications = VkNotifications(bot)
+            all_mentions = vk_notifications.get_all_mentions()
+            if all_mentions['count'] > 0:
+                logger.info("{} -for bot {} got all recent mentions".format(datetime.now(), bot))
+                for mention in all_mentions['items']:
+                    logger.info("{} - for bot '{}', parent:{}; feedback: {}".
+                                format(datetime.now(), bot, mention['parent']['text'], mention['feedback']['text']))
+                    telegram_bot.send_message("Bot: {}. Message: {}. Feedback: {}"
+                                              .format(bot, mention['parent']['text'], mention['feedback']['text']))
+                sleep(300)
+            else:
+                logger.info("{} - for bot {} there are no mentions".format(datetime.now(), bot))
+        return render(request, "", context)
+
+
 '''
 def create_camp(request, *args):
     context = {}
