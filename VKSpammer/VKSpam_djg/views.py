@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
-import random
 import socket
+from .private_message_sending_strategyes import *
 from selenium.common.exceptions import ElementNotVisibleException as elementNotVisibleException
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import WebDriverException
@@ -11,6 +11,7 @@ from multiprocessing import Process
 pathWithBuisnessLogic = '/home/grishaev/PycharmProjects/VKSpammer/'
 sys.path.append(pathWithBuisnessLogic)
 
+from .private_message_sending_strategyes import *
 from .commenters import *
 from .telegram_bot import TelegramBot
 from django.shortcuts import render,  HttpResponseRedirect
@@ -22,7 +23,8 @@ from .forms import EnterGroupIdForm
 from .forms import EnterCaptchaForm
 from .forms import DoPrivatMessageForm
 from .forms import GetStatisticsForm
-from .forms import DoWallPostForm, GetAvaInfoAndPhotoSettingsForm, GetSetOfTokensForm, AutorisationForm, DoPrivatMultisenderSendingMessForm
+from .forms import DoWallPostForm, GetAvaInfoAndPhotoSettingsForm, GetSetOfTokensForm, AutorisationForm
+from .forms import DoPrivatMultisenderSendingMessForm
 from .forms import MultisenderGetAvaInfoAndPhotoSettingForm, GetUpdatesOfAimGroupForm, DoCommentPhotoMultisenderForm
 from .forms import DoCommentPhotoMustiprocMultisendForm, SendMessagesToAimGroupUserForm
 from .forms import AddBotsInEachOtherFriendForm, SendMessagesToFriendsPrivateForm
@@ -32,11 +34,12 @@ from django.utils import timezone
 from time import sleep
 from work_with_vk_friends import MessageToPrivateSender
 from app_info import parse_and_save_auth_params
-from app_info import  get_token_by_inner_driver, get_auth_params_from_interface, autentification_in_vk_via_web_dr
-from app_info import final_sending_privat_message, get_ava_id_and_insert_in_into_db, get_settings_of_photo, do_comment_photo, many_posts_wall_message
+from app_info import get_token_by_inner_driver, get_auth_params_from_interface, autentification_in_vk_via_web_dr
+from app_info import final_sending_privat_message, get_ava_id_and_insert_in_into_db, get_settings_of_photo, \
+    many_posts_wall_message
 from app_info import final_getting_subscribers_with_offsets_loop
 from app_info import get_important_params
-from app_info import logger, proccess_log_file_path
+from app_info import logger, process_log_file_path
 from app_info import final_sending_privat_message_with_multisender
 from app_info import multiproc_do_comment_photo, multiproc_get_photo_params
 from app_info import add_bots_to_friends_of_each_other
@@ -87,7 +90,7 @@ def index(request):
             user_token = get_token_form.cleaned_data.get('user_token')
             parsed_token, vk_user_id, expires_in = parse_and_save_auth_params(user_token)
             try:
-                sender = BotsSenders.objects.get(vk_user_id=vk_user_id)
+                sender: BotsSenders = BotsSenders.objects.get(vk_user_id=vk_user_id)
             except BotsSenders.DoesNotExist:
                 sender = False
             if sender:
@@ -103,7 +106,7 @@ def index(request):
             result = request.POST.get('take_token')
             logging.info(result)
             # хардкодим процесс, порождающий рандомное использование нескольких приложений
-            vk_app_list= VKApplications.objects.all()
+            vk_app_list = VKApplications.objects.all()
             vk_app_id = vk_app_list.get(id=random.randint(1, len(vk_app_list))).vk_app_id
             if result is not False:  # сознательное дублирование изначального условия
                 get_auth_params_from_interface(vk_app_id)
@@ -111,6 +114,7 @@ def index(request):
         elif request.POST.get('take_all_token_automatically'):
             request.POST.get('take_all_token_automatically')
             for bot in BotsSenders.objects.all():
+                bot.vk_token
                 get_token_by_inner_driver(bot.vk_login, bot.vk_password)
 
         elif enter_group_id_form.is_valid():
@@ -368,7 +372,7 @@ def get_bots_and_apis():
     return users_api
 
 
-def _execute_distribution_with_one_sender_with_strategy(do_comment_photo_form, context):
+def _execute_distribution_with_one_sender_with_strategy(do_comment_photo_form):
     vk_group_id = do_comment_photo_form.cleaned_data.get('vk_group_id')  # потому что словарь!
     message = do_comment_photo_form.cleaned_data['message']
     is_autocaptcha = do_comment_photo_form.cleaned_data.get('is_autocaptcha')
@@ -376,64 +380,31 @@ def _execute_distribution_with_one_sender_with_strategy(do_comment_photo_form, c
     bots_sender_name = do_comment_photo_form.cleaned_data.get('bots_senders')
     is_multitext = do_comment_photo_form.cleaned_data.get('is_multitext')
     # message = do_comment_photo_form.message
-    print('starting work with group: {}, message: \'{}\', sender: {}', vk_group_id, message, bots_sender_name)
     # пишет в лог для отображения в интерфейсе
-    logger.info(
-        'starting work with group: {}, message: \'{}\', sender: {}'.format(vk_group_id, message, bots_sender_name))
-    # api, postgres_con, postgres_cur = get_important_params()
-    # generator_for_commenting = do_comment_photo(
-    # api, postgres_con, postgres_cur, vk_group_id, consider_user_sex=True, is_run_from_interface=True)
-    # todo костыльные внутренние серверы блин
-
-    sock = socket.socket()
-    sock.connect(('localhost', 9092))
-    print('{} - автокапча активирована? {}'.format(datetime.now(), is_autocaptcha))
-    logger.info('{} - автокапча активирована? {}'.format(datetime.now(), is_autocaptcha))
 
     bot_sender = BotsSenders.objects.get(vk_user_id=bots_sender_name)
     user_token = bot_sender.vk_token
-    # работа напрямую с функцией backend
-    # if BotsSenders.object.get()
-    print(datetime.now(), 'start distr with user and token', bot_sender, user_token)
-    logger.info('{} - start distr with user: {} and token: {}'.format(
-        datetime.now(), bot_sender, user_token)
-    )
-    if is_autocaptcha:
-        # доделать стратегии для отправки без автокапчи
-        commenter = Commenter(bot_sender, vk_group_id, is_autocaptcha, is_sex_considered, is_multitext)
-        commenter.strategy.post_photo_comment()
-        sock.close()
-    else:
-        # работа через внутренний сервер!!!!
-        open_signal = bytes('start_commenting_photo', encoding='utf8')
-        # print(message)
-        sock.send(open_signal)
-        data = sock.recv(1024)
-        if data == b'start_commenting_photo_resp':
-            parameters = vk_group_id + ', ' + message
-            parameters = bytes(parameters, encoding='utf8')
-            sock.send(parameters)
-            context['status_for_start_of_posting_ava_comment'] = \
-                do_comment_photo_form.status_for_start_of_posting_ava_comment
-            data = sock.recv(1024)
-            # std_out_messages = open('/home/grishaev/PycharmProjects/VKSpammer/test_stdout')
-            std_out_messages = open('../test_stdout')
-            context['std_out_messages'] = std_out_messages.readline()
-            if data == b'cought_exeption':
-                context['status_for_cought_exeption'] = '!!!!'  # что ЭТО такое??
-        print("{} - значение протокола, полученное от 'внутреннего сервера': {}".format(datetime.now(), data))
-        if data == 'end':
-            # sock.close()
-            context['status_for_finish_of_posting_ava_comment'] = \
-                do_comment_photo_form.status_for_finish_of_posting_ava_comment
-        elif data == 'unknown_parameter':
-            sock.close()
+
+    print(datetime.now(), 'start distr with group, sender, message, token', vk_group_id, bot_sender, message, user_token)
+    logger.info('{} - start distr with group: {}, sender: {} and token: {}'
+                .format(datetime.now(), vk_group_id, bot_sender, user_token))
+
+    commenter = Commenter(bot_sender, vk_group_id, is_autocaptcha, is_sex_considered, is_multitext, message)
+    commenter.strategy.post_photo_comment()
+    # if is_autocaptcha:
+    #     # доделать стратегии для отправки без автокапчи
+    #     commenter = Commenter(bot_sender, vk_group_id, is_autocaptcha, is_sex_considered, is_multitext, message)
+    #     commenter.strategy.post_photo_comment()
+    # else:
+    #     # условие пока есть, потому что как-то надо передать текст из интерфейса в метод
+    #     commenter = Commenter(bot_sender, vk_group_id, is_autocaptcha, is_sex_considered, is_multitext, message)
+    #     commenter.strategy.post_photo_comment()
 
 
 def distr_to_avas(request):
     context = {}
-    with open(proccess_log_file_path, 'w'):
-        pass
+    # with open(process_log_file_path, 'w'):
+    #     pass
     temp_stdout = sys.stdout
     # sys.stdout = open(proccess_log_file_path, 'w')
     if request.method == 'POST':
@@ -442,36 +413,66 @@ def distr_to_avas(request):
         do_comment_photo_form = DoCommentPhotoForm(request.POST)
         do_comment_photo_multisender_form = DoCommentPhotoMultisenderForm(request.POST)
         do_comment_photo_mustiproc_multisend_form = DoCommentPhotoMustiprocMultisendForm(request.POST)
-        EnterCaptchaForm(request.POST)
-        print(do_comment_photo_mustiproc_multisend_form.is_valid(),
+        print(datetime.now(),
+              "- ",
+              do_comment_photo_mustiproc_multisend_form.is_valid(),
               do_comment_photo_mustiproc_multisend_form.cleaned_data
               )
-        print(do_comment_photo_multisender_form.is_valid(),  do_comment_photo_multisender_form.cleaned_data)
         # sleep(300)
         logger.info('{} - is form valid? {}'.format(datetime.now(), do_comment_photo_form.is_valid()))
         if do_comment_photo_form.is_valid():  # чтобы работать с формой, нужно выполнить ф-ю is_valid!!!
-            _execute_distribution_with_one_sender_with_strategy(do_comment_photo_form, context)
+            print('{} - пришло на ветку с моносендером '
+                  'sender: {}'.format(datetime.now(), do_comment_photo_form.cleaned_data.get('bots_senders')))
+            logger.info('{} - пришло на ветку с моносендером '
+                        'sender: {}'.format(datetime.now(), do_comment_photo_form.cleaned_data.get('bots_senders')))
+            message = do_comment_photo_form.cleaned_data['message']
+            is_sex_considered = do_comment_photo_form.cleaned_data.get('is_sex_considered')
+            bots_sender_name = do_comment_photo_form.cleaned_data.get('bots_senders')
+            is_multitext = do_comment_photo_form.cleaned_data.get('is_multitext')
+            # message = do_comment_photo_form.message
+            # пишет в лог для отображения в интерфейсе
 
-        elif do_comment_photo_multisender_form.is_valid():  # чтобы работать с формой, нужно выполнить ф-ю is_valid!!!
+            bot_sender = BotsSenders.objects.get(vk_user_id=bots_sender_name)
+
+            print(datetime.now(), 'start distr with group, sender, message, token',
+                  do_comment_photo_form.cleaned_data.get('vk_group_id'), bot_sender, message, bot_sender.vk_token)
+            logger.info('{} - start distr with group: {}, sender: {} and token: {}'
+                        .format(datetime.now(), do_comment_photo_form.cleaned_data.get('vk_group_id'),
+                                bot_sender, bot_sender.vk_token))
+
+            commenter = Commenter(
+                bot_sender, do_comment_photo_form.cleaned_data.get('vk_group_id'),
+                do_comment_photo_form.cleaned_data.get('is_autocaptcha'), is_sex_considered, is_multitext, message)
+            commenter.strategy.post_photo_comment()
+
+        elif do_comment_photo_multisender_form.is_valid():
             vk_group_id = do_comment_photo_multisender_form.cleaned_data.get('vk_group_id')
-            starting_sender = BotsSenders.objects.filter(is_blocked=False).order_by("id")[20:]
-            # users_api = []
+            starting_sender = \
+                BotsSenders.objects.get(vk_user_id=do_comment_photo_multisender_form.cleaned_data.get('bots_senders'))
+            senders: BotsSenders = BotsSenders.objects.filter(
+                is_blocked=False).filter(
+                id__gte=starting_sender.id).order_by("id")
+
             print('{} - пришло на ветку с мультисендером, но без мультипроцессинга, '
-                  'starting_sender пока игнорируется'.format(datetime.now()))
-            commenter = Commenter(starting_sender, vk_group_id, True, False, True, True)
+                  'starting_sender: {}'.format(datetime.now(), starting_sender))
+            logger.info('{} - пришло на ветку с мультисендером, но без мультипроцессинга, '
+                        'starting_sender: {}'.format(datetime.now(), starting_sender))
+            commenter = Commenter(senders, vk_group_id, True, False, True, True)
             commenter.strategy.post_photo_comment()
 
         elif do_comment_photo_mustiproc_multisend_form.is_valid():
             # todo избыточное дублирование кода из предыдущего условия ДЛЯ НАГЛЯДНОСТИ!!!
             # todo чтобы убрать, нужно проверку даты отправки и исчерпания дневных лимитов вынести в отдельную функцию
+            # todo отправить код в стратегию
             vk_group_id = do_comment_photo_mustiproc_multisend_form.cleaned_data.get('vk_group_id_for_mp')
             is_sex_considered = do_comment_photo_mustiproc_multisend_form.cleaned_data.get('is_sex_considered')
             set_of_senders = BotsSenders.objects.filter(is_blocked=False)
             users_api = []
-            print('пришло на ветку с мультипроцессингом')
+            print(datetime.now(), ' - рассылка по фоткам, пришло на ветку с мультипроцессингом')
+            logger.info('{} - рассылка по фоткам, пришло на ветку с мультипроцессингом', datetime.now())
             for bot in set_of_senders:
                 print('start distr with token', bot.surname, bot.vk_login)
-                logger.info('start distr with bot: {}, {}'.format(bot.surname, bot.name))
+                logger.info('{}: start distr with bot: {}, {}'.format(datetime.now(), bot.surname, bot.name))
                 # date_offset = NaiveTZInfo(+3)
                 if bot.date_of_starting_day_counting is None:
                     bot.date_of_starting_day_counting = timezone.now()
@@ -541,11 +542,14 @@ def works_with_groups(request):
         get_ava_info_and_photo_settings_form = GetAvaInfoAndPhotoSettingsForm(request.POST)
         multisender_get_ava_info_and_photo_setting_form = MultisenderGetAvaInfoAndPhotoSettingForm(request.POST)
         if get_ava_info_and_photo_settings_form.is_valid():
-            print(dir(get_ava_info_and_photo_settings_form))
             # sleep(300)
             vk_gr_id_for_getting_settings = get_ava_info_and_photo_settings_form.cleaned_data.get('vk_group_id')
+            get_photo_settings_only = get_ava_info_and_photo_settings_form.cleaned_data.get('get_photo_settings_only')
             api, postgres_con, postgres_cur = get_important_params()
-            # get_ava_id_and_insert_in_into_db(api, postgres_con, postgres_cur, group_id=vk_gr_id_for_getting_settings)
+            if not get_photo_settings_only:
+                get_ava_id_and_insert_in_into_db(
+                    api, postgres_con, postgres_cur, group_id=vk_gr_id_for_getting_settings
+                )
             get_settings_of_photo(api, postgres_con, postgres_cur, group_id=vk_gr_id_for_getting_settings)
 
         elif multisender_get_ava_info_and_photo_setting_form.is_valid():
@@ -781,13 +785,13 @@ def make_distribution_to_friends_private(request):
 #             logger_for_communicator.info("{}: обработали форму, {}".format({}, send_messages_form))
 
 
-# todo метод поломан
+# todo метод поломан, потому что теперь нельзя отправлять в личку посредством api?
 def make_distribution_to_aim_group_through_private_messages(request):
     logger.info(request)
     context = {}
     if request.method == 'POST':
         logger.info(
-            "запрос на рассылку по личкам пользователей дружественной группы".format(datetime.now())
+            "{}: запрос на рассылку по личкам пользователей дружественной группы".format(datetime.now())
         )
         send_messages_to_aim_group_user_form = SendMessagesToAimGroupUserForm(request.POST)
 
@@ -870,8 +874,8 @@ def _make_likes_thgrough_fake_browser(group_id, wall_post_id, start_sender_id=0)
         if not bot.is_blocked and bot.id >= start_sender_id:  # 0 < bot.id < 52:  # > bot.id >= 38:
             try:
                 # todo возможно следует хранить api-объект пользователя??
-                logger.info('открываем браузер для бота: {}'.format(bot))
-                print('открываем браузер для бота: {}'.format(bot))
+                logger.info('{} - открываем браузер для бота: {}'.format(datetime.now(), bot))
+                print('{} -открываем браузер для бота: {}'.format(datetime.now(), bot))
                 selenium_sender = SeleniumSender(bot)
                 like = False
                 while not like:
@@ -899,11 +903,11 @@ def _make_likes_thgrough_fake_browser(group_id, wall_post_id, start_sender_id=0)
 
             except NoSuchElementException as n_ex:
                 logger.info(
-                    "No such element exceptions caught: {}, {}".format(group_id, n_ex))
-                print("No such element exceptions caught: {}, {}".format(group_id, n_ex))
+                    "{} -no such element exceptions caught: {}, {}".format(datetime.now(), group_id, n_ex))
+                print("{} - No such element exceptions caught: {}, {}".format(datetime.now(), group_id, n_ex))
             except WebDriverException as w_ex:
-                logger.info("WebDriverException caught: {}, {}".format(group_id, w_ex))
-                print("WebDriverException caught: {}, {}".format(group_id, w_ex))
+                logger.info("{} - WebDriverException caught: {}, {}".format(datetime.now(), group_id, w_ex))
+                print("{} - WebDriverException caught: {}, {}".format(datetime.now(), group_id, w_ex))
 
 
 def make_distribution_to_aim_group_users(request):
@@ -911,39 +915,32 @@ def make_distribution_to_aim_group_users(request):
     context = {}
     if request.method == 'POST':
         logger.info(
-            "Рассылка по личкам пользователей дружественной группы в мультипроцессорном режиме".format(datetime.now())
+            "Рассылка по личкам пользователей дружественной группы в мультипроцессорном??режиме".format(datetime.now())
         )
         send_messages_to_aim_group_user_form = SendMessagesToAimGroupUserForm(request.POST)
         if send_messages_to_aim_group_user_form.is_valid():
             logger.info("{}: обработали форму, {}".format({}, send_messages_to_aim_group_user_form))
 
-            # выдёргиваем подписчиков из бд
-            users_set = set(GorkiyGroupUser.objects
-                            .filter(have_sent_invite_private_message=None)
-                            .exclude(can_write_private_message=0))
-            bots_friends_set = set(BotsFriends.objects.all())
-            users_list = list(users_set.difference(bots_friends_set))
+            # выдёргиваем подписчиков из бд и вычитаем из них тех, кто является друзьями бота
+            users_list = list(set(GorkiyGroupUser.objects
+                              .filter(have_sent_invite_private_message=None)
+                              .exclude(can_write_private_message=0)
+                                  ).difference(set(BotsFriends.objects.all()))
+                              )
+            # bots_friends_set = set(BotsFriends.objects.all())
+            # users_list = list(users_set.difference(bots_friends_set))
 
             multitext_list = [messages_object.message
                               for messages_object in
                               InviteMessagesToLoyalGroupUsers.objects.all()]
-
-            print(len(multitext_list))
             count_messages_before_ending_work = 1
-            # users_set = {VkGroupUserUnion2.objects.get(last_name='Гришаев', first_name='Алексей'), }
 
-            if send_messages_to_aim_group_user_form.cleaned_data.get('is_multiprocessing'):
-                _multiprocessor_send_message_to_private_through_fake_browser(
-                    multitext_list,
-                    users_list,
-                    send_messages_to_aim_group_user_form.cleaned_data.get('start_sender_id')
-                )
-            else:
-                _send_message_to_private_through_fake_browser(
-                    multitext_list,
-                    users_list,
-                    send_messages_to_aim_group_user_form.cleaned_data.get('start_sender_id')
-                )
+            MessagingToPrivate(
+                send_messages_to_aim_group_user_form.cleaned_data.get('is_multiprocessing'),
+                multitext_list,
+                users_list,
+                send_messages_to_aim_group_user_form.cleaned_data.get('start_sender_id')
+            ).strategy.send_private_message()
 
             context['status_of_sending_private_messages'] = \
                 send_messages_to_aim_group_user_form.status_of_sending_privat_messages
@@ -1132,71 +1129,6 @@ def working_with_aim_group(request, *args):
     return render(request, 'VKSpam_djg/working_with_aim_group.html', context)
 
 
-#         process = Process(
-#             target=_multiproc_send_in_private_trough_fake_browser,
-#             args=(bot, users_set, multitext_list))
-#         selenium_sending_processes.append(process)
-#
-# multiproc_index = 0
-# for process in selenium_sending_processes:
-#     process.start()
-#     if multiproc_index is 5:
-#         while selenium_sending_processes[multiproc_index].is_alive:
-#             sleep(10)
-#     multiproc_index += 1
-
-# for bot in BotsSenders.objects.order_by("id"):
-#     # todo грязный хак
-#     if not bot.is_blocked and bot.id >= 0:  # 0 < bot.id < 52:  # > bot.id >= 38:
-#
-#         try:
-#             # todo возможно следует хранить api-объект пользователя??
-#             logger_for_communicator.info('открываем браузер для бота: {}'.format(bot))
-#             print('открываем браузер для бота: {}'.format(bot))
-#             selenium_sender = SeleniumSender(bot)
-#             sent = False
-#
-#             while not sent:
-#                 try:
-#                     message_index = random.randint(0, len(multitext_list) - 1)
-#                     recipient = users_set.pop()
-#                     print("message_index:{}; recipient_first_name: {}; recipient_last_name: {}"
-#                           .format(message_index, recipient.first_name, recipient.last_name))
-#
-#                     print(multitext_list)
-#                     message_to_send = multitext_list[message_index].format(recipient.first_name)
-#                     print("Сообщение для отправки: {}".format(message_to_send))
-#                     logger_for_communicator.info("message_index:{}".format(message_index))
-#
-#                     selenium_sender.open_page_and_write_message(
-#                         recipient.vk_id,
-#                         message_to_send
-#                     )
-#
-#                     recipient.have_sent_invite_private_message = True
-#                     recipient.save()
-#
-#                     sleep(1)
-#                     bot.day_sent_message_count = 1
-#                     sent = True
-#                 except TooFarLastAutorisationException:
-#                     logger_for_communicator.info("to far last autorisation from recipient: {}".format(recipient))
-#                     recipient.can_write_private_message = False
-#                     recipient.save()
-#                 except elementNotVisibleException:
-#                     recipient.can_write_private_message = False
-#                     recipient.save()
-#                     logger_for_communicator.info("can't write message to recipient: {}".format(recipient))
-#
-#         except NoSuchElementException as n_ex:
-#             recipient.can_write_private_message = 0
-#             recipient.save()
-#             logger_for_communicator.info(
-#                 "No such element exceptions caught: {}, {}".format(recipient, n_ex))
-#
-#         except WebDriverException as w_ex:
-#             logger_for_communicator.info("WebDriverException caught: {}, {}".format(recipient, w_ex))
-
 def _mult(bot, multitext_list, recipient):
     if not bot.is_blocked and bot.id >= 0:  # 0 < bot.id < 52:  # > bot.id >= 38:
         try:
@@ -1338,7 +1270,7 @@ def make_distribution_in_privat_through_fake_browser(request, *args):
             logger.info('стартует отправка пользователям группы:{}'.format(vk_group_id_for_privat_msg))
             print('стартует отправка пользователям группы:{}'.format(vk_group_id_for_privat_msg))
 
-            multtext_list = [obj.message for obj in PrivateMessages.objects.all()]
+            multitext_list = [obj.message for obj in PrivateMessages.objects.all()]
             print(type(multitext_list))
             print(len(multitext_list))
             count_messages_before_ending_work = 1
@@ -1464,7 +1396,6 @@ def get_notifications_for_sender_bots_and_sent_to_telegram(request):
                                 format(datetime.now(), bot, mention['parent']['text'], mention['feedback']['text']))
                     telegram_bot.send_message("Bot: {}. Message: {}. Feedback: {}"
                                               .format(bot, mention['parent']['text'], mention['feedback']['text']))
-                sleep(300)
             else:
                 logger.info("{} - for bot {} there are no mentions".format(datetime.now(), bot))
         return render(request, "", context)

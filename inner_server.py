@@ -5,7 +5,8 @@ __author__ = 'grishaev'
 
 
 import socket
-from app_info import do_comment_photo, many_posts_wall_message
+from app_info import many_posts_wall_message
+from VKSpammer.VKSpam_djg.commenters import do_comment_photo
 from app_info import get_important_params
 from multiprocessing import Process, Queue
 
@@ -35,9 +36,8 @@ class InnerServerConnections:
 
     # архитектура КАПеЦ, но зато поупражнялся с классами
     def accept_and_handling_client_for_photo_comment(self):
-
-        self.conn, self.addr = self.sock.accept() #б локирует, сволочь, приложение
-        # sys.stdout = flushfile(sys.stdout) #перенаправляем вывод в файл!!!!
+        self.conn, self.addr = self.sock.accept() # блокирует, сволочь, приложение
+        # sys.stdout = flushfile(sys.stdout) # перенаправляем вывод в файл!!!!
         print('accepting ', self.port)
         self.data = self.conn.recv(1024)
         self.data = self.data.decode('utf8')
@@ -50,13 +50,14 @@ class InnerServerConnections:
                     print(self.data)
                     self.data = self.conn.recv(1024)
                     self.data = self.data.decode('utf8')
-                    self.arg_list = self.data.split(',')
-                    self.vk_group_id = self.arg_list[0]
+                    arg_list = self.data.split(',')
+                    self.vk_group_id = arg_list[0]
                     api, postgres_con, postgres_cur = get_important_params()
-                    self.generator_for_wall_posting = do_comment_photo(api, postgres_con, postgres_cur, self.vk_group_id, consider_user_sex=True, is_run_from_interface=True)
+                    generator_for_wall_posting = do_comment_photo(d, api, postgres_con, postgres_cur, self.vk_group_id,
+                                                                  consider_user_sex=True, is_run_from_interface=True)
                     self.gen_result = None
                     while self.gen_result != 'handling_exception':
-                        self.gen_result = next(self.generator_for_wall_posting)
+                        self.gen_result = next(generator_for_wall_posting)
                         print('Замораживается!?')
                     if self.gen_result == 'handling_exception':
                             self.conn.send(b'handling_exception')
@@ -64,22 +65,22 @@ class InnerServerConnections:
                             print('handling_exception')
                             print(self.conn, self.addr)
 
-                elif self.data=='catch_exception':
+                elif self.data == 'catch_exception':
                     print(self.data)
                     self.conn.send(b'handling_exception')
-                    self.inputed_captcha = self.conn.recv(1024)
-                    self.inputed_captcha = self.inputed_captcha.decode('utf8')
+                    self.inputed_captcha = self.conn.recv(1024).decode('utf8')
                     print(self.inputed_captcha)
-                    self.gen_result = self.generator_for_wall_posting.send(self.inputed_captcha)
-                    #весь "рабочий" цикл идет внутри генератора!! сюда приходит, только если генератор "замораживается" ввиду ошибки (причем это 2-й и более exception)
+                    self.gen_result = generator_for_wall_posting.send(self.inputed_captcha)
+                    # весь "рабочий" цикл идет внутри генератора!! сюда приходит, только если генератор "замораживается"
+                    # ввиду ошибки (причем это 2-й и более exception)
                     while self.gen_result != 'handling_exception':
-                        self.gen_result = next(self.generator_for_wall_posting)
+                        self.gen_result = next(generator_for_wall_posting)
                     if self.gen_result == 'handling_exception':
                             #print('наконец-то')
                             #conn.send(b'handling_exception')
                             self.conn, self.addr = self.restart_accepting_conn('photo')
 
-                elif self.data=='ok':
+                elif self.data == 'ok':
                     self.conn.send(b'end')
                     self.conn, self.addr = self.restart_accepting_conn('photo')
                 else:

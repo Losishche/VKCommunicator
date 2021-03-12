@@ -5,7 +5,6 @@ __author__ = 'grishaev'
 from django import forms
 from .models import *
 from django.forms.widgets import RadioSelect
-# from django.utils.translation import ugettext as _
 
 
 class NameForm(forms.Form):
@@ -20,7 +19,7 @@ class CampParamsForm(forms.ModelForm):
         fields = '__all__'
         widgets = {
             'title': forms.Textarea(attrs={'cols': 80, 'rows': 20}),
-            'start_date' : forms.DateTimeInput,
+            'start_date': forms.DateTimeInput,
         }
 
     def save(self, user):
@@ -35,7 +34,7 @@ class UploadFileForm(forms.Form):
     # здесь нужно в CHOICES указать None или пустую строку, чтобы обрабатывалось корректно незаданная кампания
     CHOICES = [(None,'Не задано')]
     for i in range(10):
-         CHOICES.append((i, str(i) + '  ' + str(i)))
+        CHOICES.append((i, str(i) + '  ' + str(i)))
     CHOICES = tuple(CHOICES)
     file = forms.FileField(label='Файл',  required=True)
     campaign_id = forms.ChoiceField(
@@ -55,7 +54,7 @@ class ChoiceGroupForm(forms.Form):
     )
 
     BOTS_CHOICES = [(None, 'Не задано')]
-    for bot in BotsSenders.objects.filter(is_blocked = False):
+    for bot in BotsSenders.objects.filter(is_blocked=False):
         BOTS_CHOICES.append((str(bot.vk_user_id), bot.surname))
 
     bots_senders = forms.ChoiceField(
@@ -64,7 +63,7 @@ class ChoiceGroupForm(forms.Form):
 
     is_autocaptcha = forms.BooleanField(label='Авторазбор капчи', required=False)
     is_sex_considered = forms.BooleanField(label='Рассылка с учётом пола', required=False)
-    is_multitext = forms.BooleanField(label='Включить мультитекст', required=False)
+    is_multitext = forms.BooleanField(label='Включить мультитекст?', required=False)
 
 
 class GetTokenForm(forms.Form):
@@ -111,12 +110,16 @@ class DoCommentPhotoForm(ChoiceGroupForm):
 
 class DoCommentPhotoMultisenderForm(ChoiceGroupForm):
 
-    status_for_start_of_multisender_posting_ava_comment = 'начали постинг комменнтов к аватаркам в режиме мультисендер'
-    status_for_finish_of_multisender_posting_ava_comment = \
-        'закончили постинг комментов к аватаркам в режиме мультисендер'
+    status_for_start_of_multisender_posting_ava_comment = 'начали постинг комменнтов к авам в режиме мультисендер'
+    status_for_finish_of_multisender_posting_ava_comment = 'закончили постинг комментов к авам в режиме мультисендер'
     campaign_id = None
-    BOTS_CHOICES = None
-    bots_senders = None
+    BOTS_CHOICES = [(None, 'Не задано')]
+    for bot in BotsSenders.objects.filter(is_blocked=False).order_by("id"):
+        BOTS_CHOICES.append((str(bot.vk_user_id), bot.surname))
+
+    bots_senders = forms.ChoiceField(
+        label='Стартовый бот', choices=BOTS_CHOICES, required=False
+    )
     is_autocaptcha = None
     is_sex_considered = None
     is_multitext = None
@@ -276,6 +279,8 @@ class GetAvaInfoAndPhotoSettingsForm(ChoiceGroupForm):
     is_autocaptcha = None
     bots_senders = None
     is_sex_considered = None
+    is_multitext = None
+    get_photo_settings_only = forms.BooleanField(label='получить только настройки доступа аватарок', required=False)
     status_for_start_of_getting_photo_settings = 'начали получение настроек аватарок'
     status_for_finish_of_getting_photo_settings = 'закончили получение настроек аватарок'
 

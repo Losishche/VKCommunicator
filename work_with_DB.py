@@ -3,6 +3,12 @@ __author__ = 'grishaev'
 import psycopg2
 import settings
 import logging
+import logging
+from datetime import datetime
+
+logger = logging.getLogger('work_with_DB')
+logger.setLevel(logging.INFO)
+
 
 def connection_to_postgres():
     # ДОДЕЛАТЬ!!!
@@ -19,7 +25,7 @@ def connection_to_postgres():
     return postgres_con, postgres_cur
 
 
-def select_group_users_union_from_inner_db_FOR_UPDATE(postgres_con, postgres_cur, group_id=None):
+def select_group_users_union_from_inner_db_for_update(postgres_con, postgres_cur, group_id=None):
     """
     :param postgres_con:
     :param postgres_cur:
@@ -57,7 +63,7 @@ def select_group_users_union_from_inner_db_FOR_UPDATE(postgres_con, postgres_cur
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
 
-### запросы для получения статистики ###
+# запросы для получения статистики ###
 
 def select_count_have_posted_ava_messages(postgres_con, postgres_cur, group_id=None):
 
@@ -98,7 +104,7 @@ def select_count_have_posted_ava_messages(postgres_con, postgres_cur, group_id=N
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
 
 
-def select_vk_errors(postgres_con, postgres_cur, error_id = None):
+def select_vk_errors(postgres_con, postgres_cur, error_id=None):
 
     if error_id is None:
 
@@ -109,7 +115,46 @@ def select_vk_errors(postgres_con, postgres_cur, error_id = None):
             response = postgres_cur.execute(query)
             result = postgres_cur.fetchall()
             # print(result)
-            if postgres_cur.statusmessage !=0:
+            if postgres_cur.statusmessage != 0:
                 return result
         except psycopg2.IntegrityError:
             logging.warning('{}'.format('ОШИБКА ОБРАЩЕНИЯ БД VKSpammer'))
+
+
+# запросы для обновления
+
+def update_vk_photo_comment_state_group_user_union(postgres_con, postgres_cur, uid, can_post_ava_comment=True) -> None:
+    """
+    функция для обновления данных по аватаркам в БД
+    :param postgres_con:
+    :param postgres_cur:
+    :param uid:
+    :param can_post_ava_comment:
+    :return: None
+    """
+    try:
+        if can_post_ava_comment is True:
+            query = '''
+                UPDATE vk_group_user_union_2
+                 SET have_post_photo_comment = true
+                  WHERE vk_id={}
+            '''
+            logger.debug('{} - {}, ставим флаг успешной отправки фото коммента пользователю', datetime.now(), uid)
+            # print(tupl_member_of_group[122]['uid'])
+            # print(help(postgres_cur.execute))
+            postgres_cur.execute(query.format(uid))
+            postgres_con.commit()
+        else:
+            # если возникает исключение, переписываем поле can_post_ava_comment в false
+            query = '''
+                UPDATE vk_group_user_union_2
+                 SET can_post_ava_comment = false
+                  WHERE vk_id={}
+            '''
+            logger.debug('{} - {}, ставим флаг невозможности отправки фото коммента пользователю', datetime.now(), uid)
+            # print(tupl_member_of_group[122]['uid'])
+            # print(help(postgres_cur.execute))
+            postgres_cur.execute(query.format(uid))
+            postgres_con.commit()
+    except psycopg2.IntegrityError:
+        logger.warning('{} - {} - ОШИБКА АПДЕЙТА В БД VKSpammer'.format(datetime.now(), uid))
