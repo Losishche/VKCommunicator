@@ -5,7 +5,7 @@ class TelegramBot:
 
     main_url = 'https://api.telegram.org/{}/{}'
     bot_name = 't.me/botVkCommunicatorNotificationBot'
-    token = 'bot1483003607:AAFM2WpmPNGIh8JOlZntwoycQxNrzKoIAQ8'
+    token = '*********'
 
     # def __init__(self):
     #     pass
